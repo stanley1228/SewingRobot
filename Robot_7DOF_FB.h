@@ -10,9 +10,9 @@
 
 #include "conio.h"
 
-#define DEBUG 1
+#define STANLEY_DEBUG 1
 
-#if (DEBUG)
+#if (STANLEY_DEBUG)
 	#define DBGMSG(x)  _cprintf x;
 #else
     #define DBGMSG(x)
@@ -155,6 +155,23 @@ static const unsigned char gMapLAxisID[MAX_AXIS_NUM]=
 	ID_LAXIS7
 };
 
+static const unsigned char gMapAllAxisID[MAX_AXIS_NUM*2] =
+{
+	ID_RAXIS1,
+	ID_RAXIS2,
+	ID_RAXIS3,
+	ID_RAXIS4,
+	ID_RAXIS5,
+	ID_RAXIS6,
+	ID_RAXIS7,
+	ID_LAXIS1,
+	ID_LAXIS2,
+	ID_LAXIS3,
+	ID_LAXIS4,
+	ID_LAXIS5,
+	ID_LAXIS6,
+	ID_LAXIS7
+};
 
 //================
 //==Unit transform
@@ -233,74 +250,75 @@ enum{
 #define AXISL7_ROBOT_LIM_DEG_L (-170)
 #define AXISL7_ROBOT_LIM_DEG_H 170
 
+//protocol 2.0 has no torque limit
 //==robot TORQUE limit==//  0~1023
 //right
-#define AXISR1_MAX_TORQUE 928	//90%
-#define AXISR2_MAX_TORQUE 430   //42%	
-#define AXISR3_MAX_TORQUE 923	//90%
-#define AXISR4_MAX_TORQUE 926	//90%
-#define AXISR5_MAX_TORQUE 514	//50%
-#define AXISR6_MAX_TORQUE 519	//50%
-#define AXISR7_MAX_TORQUE 517	//50%
-//left
-#define AXISL1_MAX_TORQUE 928	//90%
-#define AXISL2_MAX_TORQUE 430   //42%	
-#define AXISL3_MAX_TORQUE 923	//90%
-#define AXISL4_MAX_TORQUE 926	//90%
-#define AXISL5_MAX_TORQUE 514	//50%
-#define AXISL6_MAX_TORQUE 519	//50%
-#define AXISL7_MAX_TORQUE 517	//50%
+//#define AXISR1_MAX_TORQUE 928	//90%
+//#define AXISR2_MAX_TORQUE 430   //42%	
+//#define AXISR3_MAX_TORQUE 923	//90%
+//#define AXISR4_MAX_TORQUE 926	//90%
+//#define AXISR5_MAX_TORQUE 514	//50%
+//#define AXISR6_MAX_TORQUE 519	//50%
+//#define AXISR7_MAX_TORQUE 517	//50%
+////left
+//#define AXISL1_MAX_TORQUE 928	//90%
+//#define AXISL2_MAX_TORQUE 430   //42%	
+//#define AXISL3_MAX_TORQUE 923	//90%
+//#define AXISL4_MAX_TORQUE 926	//90%
+//#define AXISL5_MAX_TORQUE 514	//50%
+//#define AXISL6_MAX_TORQUE 519	//50%
+//#define AXISL7_MAX_TORQUE 517	//50%
 
 //==PID P gain==//
-#define AXISR1_P_GAIN	40		
-#define AXISR2_P_GAIN	32
-#define AXISR3_P_GAIN	32
-#define AXISR4_P_GAIN	32
-#define AXISR5_P_GAIN	32
-#define AXISR6_P_GAIN	32
-#define AXISR7_P_GAIN	32
+#define AXISR1_POS_P_GAIN	40		
+#define AXISR2_POS_P_GAIN	32
+#define AXISR3_POS_P_GAIN	32
+#define AXISR4_POS_P_GAIN	32
+#define AXISR5_POS_P_GAIN	32
+#define AXISR6_POS_P_GAIN	32
+#define AXISR7_POS_P_GAIN	32
 
-#define AXISL1_P_GAIN	40		
-#define AXISL2_P_GAIN	32
-#define AXISL3_P_GAIN	32
-#define AXISL4_P_GAIN	32
-#define AXISL5_P_GAIN	32
-#define AXISL6_P_GAIN	32
-#define AXISL7_P_GAIN	32
+#define AXISL1_POS_P_GAIN	40		
+#define AXISL2_POS_P_GAIN	32
+#define AXISL3_POS_P_GAIN	32
+#define AXISL4_POS_P_GAIN	32
+#define AXISL5_POS_P_GAIN	32
+#define AXISL6_POS_P_GAIN	32
+#define AXISL7_POS_P_GAIN	32
 
 //==PID I gain==//
-#define AXISR1_I_GAIN	20		
-#define AXISR2_I_GAIN	15
-#define AXISR3_I_GAIN	15
-#define AXISR4_I_GAIN	15
-#define AXISR5_I_GAIN	15
-#define AXISR6_I_GAIN	15
-#define AXISR7_I_GAIN	15
+#define AXISR1_POS_I_GAIN	20		
+#define AXISR2_POS_I_GAIN	15
+#define AXISR3_POS_I_GAIN	15
+#define AXISR4_POS_I_GAIN	15
+#define AXISR5_POS_I_GAIN	15
+#define AXISR6_POS_I_GAIN	15
+#define AXISR7_POS_I_GAIN	15
 
-#define AXISL1_I_GAIN	20	
-#define AXISL2_I_GAIN	15
-#define AXISL3_I_GAIN	15
-#define AXISL4_I_GAIN	15
-#define AXISL5_I_GAIN	15
-#define AXISL6_I_GAIN	15
-#define AXISL7_I_GAIN	15
+#define AXISL1_POS_I_GAIN	20	
+#define AXISL2_POS_I_GAIN	15
+#define AXISL3_POS_I_GAIN	15
+#define AXISL4_POS_I_GAIN	15
+#define AXISL5_POS_I_GAIN	15
+#define AXISL6_POS_I_GAIN	15
+#define AXISL7_POS_I_GAIN	15
 
 //==PID D gain==//
-#define AXISR1_D_GAIN	10		
-#define AXISR2_D_GAIN	10
-#define AXISR3_D_GAIN	10
-#define AXISR4_D_GAIN	10
-#define AXISR5_D_GAIN	10
-#define AXISR6_D_GAIN	10
-#define AXISR7_D_GAIN	10
+#define AXISR1_POS_D_GAIN	10		
+#define AXISR2_POS_D_GAIN	10
+#define AXISR3_POS_D_GAIN	10
+#define AXISR4_POS_D_GAIN	10
+#define AXISR5_POS_D_GAIN	10
+#define AXISR6_POS_D_GAIN	10
+#define AXISR7_POS_D_GAIN	10
 
-#define AXISL1_D_GAIN	10		
-#define AXISL2_D_GAIN	10
-#define AXISL3_D_GAIN	10
-#define AXISL4_D_GAIN	10
-#define AXISL5_D_GAIN	10
-#define AXISL6_D_GAIN	10
-#define AXISL7_D_GAIN	10
+#define AXISL1_POS_D_GAIN	10		
+#define AXISL2_POS_D_GAIN	10
+#define AXISL3_POS_D_GAIN	10
+#define AXISL4_POS_D_GAIN	10
+#define AXISL5_POS_D_GAIN	10
+#define AXISL6_POS_D_GAIN	10
+#define AXISL7_POS_D_GAIN	10
 
 //==define right hand or left hand==//
 #define DEF_RIGHT_HAND	1
@@ -478,7 +496,7 @@ unsigned char getMapAxisNO(unsigned char index); //index 0~ (MAX_AXIS_NUM-1)
 unsigned char getMapAxisID(unsigned char index);
 int ROM_Setting_Dual();
 void PID_Setting_Dual();
-int Read_pos(int RLHand,float *pos,unsigned char unit);
+int Read_pos(int RLHand,unsigned long *pos,unsigned char unit);
 int ReadPresentLoad(int RLHand,float *LoadPercent);
 void WaitMotionDoneDual();
 void TestSewingAction();
@@ -509,10 +527,10 @@ int IsMoving(int RLHand,bool *stillmoving);
 void QPDelay_ms(int t_ms);
 
 //dynamixel use
-int syncWrite_x86(unsigned short int start_addr, unsigned short int data_length, unsigned short int *param, unsigned short int param_length); // WORD(16bit) syncwrite() for DXL
-int setPosition_x86(int ServoID, int Position, int Speed);
-int DXL_Initial_x86();
-int DXL_Terminate_x86();
+//int syncWrite_x86(unsigned short int start_addr, unsigned short int data_length, unsigned short int *param, unsigned short int param_length); // WORD(16bit) syncwrite() for DXL
+//int setPosition_x86(int ServoID, int Position, int Speed);
+int DXL_Initial();
+int DXL_Terminate();
 
 
 //Modbus control gripper
@@ -522,9 +540,9 @@ void Terminate_Modbus();
 int GripperHold(int RLHand,bool Hold);
 #endif
 
-int Gripper_LattePanda_Initial();
-void Gripper_LattePanda_Close();
-int Gripper_LattePanda_Hold(int RLHand,bool Hold,int delay_ms);
+//int Gripper_LattePanda_Initial();
+//void Gripper_LattePanda_Close();
+//int Gripper_LattePanda_Hold(int RLHand,bool Hold,int delay_ms);
 #endif    /* ROBOT_7DOF_FB__H */
 
 
@@ -593,3 +611,7 @@ public:
 //==CV_Test
 //========
 void testcv();
+
+//dxl2.0 test
+int dxl2test();
+int dxl2_sync_test();

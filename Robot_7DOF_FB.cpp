@@ -15,11 +15,12 @@
 #define _USE_MATH_DEFINES // for C++
 #include <math.h>
 
-#include "dynamixel.h"
+#include "dynamixel2.h"
 #include <windows.h> //QPDelay_ms使用
 #include<fstream>//寫檔使用
 
-#pragma comment(lib,"dynamixel.lib") 
+//#pragma comment(lib,"dynamixel.lib") 
+#pragma comment(lib,"dynamixel2_win64.lib") 
 #pragma comment(lib,"opencv_world340d.lib")
 //#pragma comment(lib,"opencv_core2413d.lib")	//顯示圖片使用
 //#pragma comment(lib,"opencv_highgui2413d.lib") 
@@ -69,28 +70,29 @@ unsigned char getMapLAxisID(unsigned char index)
 
 int ROM_Setting_Dual()
 {
+	//protocol 2.0 has no torque limit
 	//==calculate Max torque to set in rom 
-	const short int Max_torque_R[MAX_AXIS_NUM]=
-	{
-		AXISR1_MAX_TORQUE,
-		AXISR2_MAX_TORQUE,
-		AXISR3_MAX_TORQUE,
-		AXISR4_MAX_TORQUE,
-		AXISR5_MAX_TORQUE,
-		AXISR6_MAX_TORQUE,
-		AXISR7_MAX_TORQUE
-	};
+	//const short int Max_torque_R[MAX_AXIS_NUM]=
+	//{
+	//	AXISR1_MAX_TORQUE,
+	//	AXISR2_MAX_TORQUE,
+	//	AXISR3_MAX_TORQUE,
+	//	AXISR4_MAX_TORQUE,
+	//	AXISR5_MAX_TORQUE,
+	//	AXISR6_MAX_TORQUE,
+	//	AXISR7_MAX_TORQUE
+	//};
 
-	const short int Max_torque_L[MAX_AXIS_NUM]=
-	{
-		AXISL1_MAX_TORQUE,
-		AXISL2_MAX_TORQUE,
-		AXISL3_MAX_TORQUE,
-		AXISL4_MAX_TORQUE,
-		AXISL5_MAX_TORQUE,
-		AXISL6_MAX_TORQUE,
-		AXISL7_MAX_TORQUE
-	};
+	//const short int Max_torque_L[MAX_AXIS_NUM]=
+	//{
+	//	AXISL1_MAX_TORQUE,
+	//	AXISL2_MAX_TORQUE,
+	//	AXISL3_MAX_TORQUE,
+	//	AXISL4_MAX_TORQUE,
+	//	AXISL5_MAX_TORQUE,
+	//	AXISL6_MAX_TORQUE,
+	//	AXISL7_MAX_TORQUE
+	//};
 
 
 
@@ -187,62 +189,62 @@ int ROM_Setting_Dual()
 	for(i=Index_AXIS1;i<MAX_AXIS_NUM;i++)
 	{
 		//==Set MAX_torgue==//
-		dxl_write_word(gMapRAxisID[i],MAX_TORQUE,Max_torque_R[i]);//right
-		dxl_write_word(gMapLAxisID[i],MAX_TORQUE,Max_torque_L[i]);//left
+		//dxl_write_word(gMapRAxisID[i],MAX_TORQUE,Max_torque_R[i]);//right
+		//dxl_write_word(gMapLAxisID[i],MAX_TORQUE,Max_torque_L[i]);//left
 	
 		//==Set angel limit==//
-		dxl_write_word(gMapRAxisID[i],CW_ANGLE_LIMIT_L,Motor_lim_pulse_R_low[i]);//right
-		dxl_write_word(gMapRAxisID[i],CCW_ANGLE_LIMIT_L,Motor_lim_pulse_R_high[i]);//right  
+		dxl_write_word(gMapRAxisID[i], MIN_POS_LIMIT,Motor_lim_pulse_R_low[i]);//right
+		dxl_write_word(gMapRAxisID[i], MAX_POS_LIMIT,Motor_lim_pulse_R_high[i]);//right  
 
-		dxl_write_word(gMapLAxisID[i],CW_ANGLE_LIMIT_L,Motor_lim_pulse_L_low[i]);//left
-		dxl_write_word(gMapLAxisID[i],CCW_ANGLE_LIMIT_L,Motor_lim_pulse_L_high[i]);//left  
+		dxl_write_word(gMapLAxisID[i], MIN_POS_LIMIT,Motor_lim_pulse_L_low[i]);//left
+		dxl_write_word(gMapLAxisID[i], MAX_POS_LIMIT,Motor_lim_pulse_L_high[i]);//left  
 
 		//==Set MULTITURN_OFFSET to 0==//
-		dxl_write_word(gMapRAxisID[i],MULTITURN_OFFSET,0);//right
-		dxl_write_word(gMapLAxisID[i],MULTITURN_OFFSET,0);//left
+		//dxl_write_word(gMapRAxisID[i],MULTITURN_OFFSET,0);//right
+		//dxl_write_word(gMapLAxisID[i],MULTITURN_OFFSET,0);//left
 	}
 	
 
 	//==read and check right hand==//
 	int	txrx_result=0;
 	short int max_torque=0;
-	short int cw_angel_lim=0,ccw_angle_lim=0;
+	short int min_pos_lim=0,max_pos_lim=0;
 	short int multi_turn_offset=0;
 	for(i=Index_AXIS1;i<MAX_AXIS_NUM;i++)
 	{
 		printf("===AXIS_R%d===\n",gMapAxisNO[i]);
 
 		//==MAX_torgue==//
-		max_torque = dxl_read_word(gMapRAxisID[i], MAX_TORQUE);
-		txrx_result = dxl_get_result();
-		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed read MAX_TORQUE error=%d\n",txrx_result);
-		else
-			printf("MAX_TORQUE=%d\n",max_torque);
+		//max_torque = dxl_read_word(gMapRAxisID[i], MAX_TORQUE);
+		//txrx_result = dxl_get_comm_result();
+		//if(txrx_result!=COMM_RXSUCCESS)
+		//	printf("Failed read MAX_TORQUE error=%d\n",txrx_result);
+		//else
+		//	printf("MAX_TORQUE=%d\n",max_torque);
 	
-		//==CW_ANGLE_LIMIT,CCW_ANGLE_LIMIT==//
-		cw_angel_lim=dxl_read_word(gMapRAxisID[i],CW_ANGLE_LIMIT_L);
-		txrx_result = dxl_get_result();
+		//==MIN_POS_LIMIT,MAX_POS_LIMIT==//
+		min_pos_lim =dxl_read_word(gMapRAxisID[i], MIN_POS_LIMIT);
+		txrx_result = dxl_get_comm_result();
 		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed read CW_ANGLE_LIMIT error=%d\n",txrx_result);
+			printf("Failed read MIN_POS_LIMIT error=%d\n",txrx_result);
 		else	
-			printf("CW_ANGLE_LIMIT=%d,degree=%f\n",cw_angel_lim,cw_angel_lim*DEF_RATIO_PUS_TO_DEG);
+			printf("MIN_POS_LIMIT=%d,degree=%f\n", min_pos_lim, min_pos_lim*DEF_RATIO_PUS_TO_DEG);
 
-		ccw_angle_lim=dxl_read_word(gMapRAxisID[i],CCW_ANGLE_LIMIT_L);
-		txrx_result = dxl_get_result();
+		max_pos_lim =dxl_read_word(gMapRAxisID[i], MAX_POS_LIMIT);
+		txrx_result = dxl_get_comm_result();
 		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed Read CCW_ANGLE_LIMIT failed error=%d\n",txrx_result);
+			printf("Failed Read MAX_POS_LIMIT failed error=%d\n",txrx_result);
 		else	
-			printf("CCW_ANGLE_LIMIT=%d,degree=%f\n",ccw_angle_lim,ccw_angle_lim*DEF_RATIO_PUS_TO_DEG);
+			printf("MAX_POS_LIMIT=%d,degree=%f\n", max_pos_lim, max_pos_lim*DEF_RATIO_PUS_TO_DEG);
 		
 
 		//==multi turn offset==//
-		multi_turn_offset=dxl_read_word(gMapRAxisID[i],MULTITURN_OFFSET);
-		txrx_result = dxl_get_result();
-		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed Read MULTITURN_OFFSET failed error=%d\n",txrx_result);
-		else	
-			printf("MULTITURN_OFFSET=%d\n",multi_turn_offset);
+		//multi_turn_offset=dxl_read_word(gMapRAxisID[i],MULTITURN_OFFSET);
+		//txrx_result = dxl_get_comm_result();
+		//if(txrx_result!=COMM_RXSUCCESS)
+		//	printf("Failed Read MULTITURN_OFFSET failed error=%d\n",txrx_result);
+		//else	
+		//	printf("MULTITURN_OFFSET=%d\n",multi_turn_offset);
 	}
 
 	//==read and check left hand==//
@@ -251,36 +253,36 @@ int ROM_Setting_Dual()
 		printf("===AXIS_L%d===\n",gMapAxisNO[i]);
 
 		//==MAX_torgue==//
-		max_torque = dxl_read_word(gMapLAxisID[i], MAX_TORQUE);
-		txrx_result = dxl_get_result();
-		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed read MAX_TORQUE error=%d\n",txrx_result);
-		else
-			printf("MAX_TORQUE=%d\n",max_torque);
+		//max_torque = dxl_read_word(gMapLAxisID[i], MAX_TORQUE);
+		//txrx_result = dxl_get_comm_result();
+		//if(txrx_result!=COMM_RXSUCCESS)
+		//	printf("Failed read MAX_TORQUE error=%d\n",txrx_result);
+		//else
+		//	printf("MAX_TORQUE=%d\n",max_torque);
 	
-		//==CW_ANGLE_LIMIT,CCW_ANGLE_LIMIT==//
-		cw_angel_lim=dxl_read_word(gMapLAxisID[i],CW_ANGLE_LIMIT_L);
-		txrx_result = dxl_get_result();
+		//==MIN_POS_LIMIT,MAX_POS_LIMIT==//
+		min_pos_lim =dxl_read_word(gMapLAxisID[i], MIN_POS_LIMIT);
+		txrx_result = dxl_get_comm_result();
 		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed read CW_ANGLE_LIMIT error=%d\n",txrx_result);
+			printf("Failed read MIN_POS_LIMIT error=%d\n",txrx_result);
 		else	
-			printf("CW_ANGLE_LIMIT=%d,degree=%f\n",cw_angel_lim,cw_angel_lim*DEF_RATIO_PUS_TO_DEG);
+			printf("MIN_POS_LIMIT=%d,degree=%f\n", min_pos_lim, min_pos_lim*DEF_RATIO_PUS_TO_DEG);
 
-		ccw_angle_lim=dxl_read_word(gMapLAxisID[i],CCW_ANGLE_LIMIT_L);
-		txrx_result = dxl_get_result();
+		max_pos_lim =dxl_read_word(gMapLAxisID[i], MAX_POS_LIMIT);
+		txrx_result = dxl_get_comm_result();
 		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed Read CCW_ANGLE_LIMIT failed error=%d\n",txrx_result);
+			printf("Failed Read MAX_POS_LIMIT failed error=%d\n",txrx_result);
 		else	
-			printf("CCW_ANGLE_LIMIT=%d,degree=%f\n",ccw_angle_lim,ccw_angle_lim*DEF_RATIO_PUS_TO_DEG);
+			printf("MAX_POS_LIMIT=%d,degree=%f\n", max_pos_lim, max_pos_lim*DEF_RATIO_PUS_TO_DEG);
 		
 
 		//==multi turn offset==//
-		multi_turn_offset=dxl_read_word(gMapLAxisID[i],MULTITURN_OFFSET);
-		txrx_result = dxl_get_result();
-		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed Read MULTITURN_OFFSET failed error=%d\n",txrx_result);
-		else	
-			printf("MULTITURN_OFFSET=%d\n",multi_turn_offset);
+		//multi_turn_offset=dxl_read_word(gMapLAxisID[i],MULTITURN_OFFSET);
+		//txrx_result = dxl_get_comm_result();
+		//if(txrx_result!=COMM_RXSUCCESS)
+		//	printf("Failed Read MULTITURN_OFFSET failed error=%d\n",txrx_result);
+		//else	
+		//	printf("MULTITURN_OFFSET=%d\n",multi_turn_offset);
 	}
 
 	return 0;
@@ -288,66 +290,66 @@ int ROM_Setting_Dual()
 
 void PID_Setting_Dual()
 {
-	const short int P_GAIN_R[MAX_AXIS_NUM]=
+	const short int POS_P_GAIN_R[MAX_AXIS_NUM]=
 	{
-		AXISR1_P_GAIN,
-		AXISR2_P_GAIN,
-		AXISR3_P_GAIN,
-		AXISR4_P_GAIN,
-		AXISR5_P_GAIN,
-		AXISR6_P_GAIN,
-		AXISR7_P_GAIN
+		AXISR1_POS_P_GAIN,
+		AXISR2_POS_P_GAIN,
+		AXISR3_POS_P_GAIN,
+		AXISR4_POS_P_GAIN,
+		AXISR5_POS_P_GAIN,
+		AXISR6_POS_P_GAIN,
+		AXISR7_POS_P_GAIN
 	};
 
-	const short int P_GAIN_L[MAX_AXIS_NUM]=
+	const short int POS_P_GAIN_L[MAX_AXIS_NUM]=
 	{
-		AXISL1_P_GAIN,
-		AXISL2_P_GAIN,
-		AXISL3_P_GAIN,
-		AXISL4_P_GAIN,
-		AXISL5_P_GAIN,
-		AXISL6_P_GAIN,
-		AXISL7_P_GAIN
+		AXISL1_POS_P_GAIN,
+		AXISL2_POS_P_GAIN,
+		AXISL3_POS_P_GAIN,
+		AXISL4_POS_P_GAIN,
+		AXISL5_POS_P_GAIN,
+		AXISL6_POS_P_GAIN,
+		AXISL7_POS_P_GAIN
 	};
-	const short int I_GAIN_R[MAX_AXIS_NUM]=
+	const short int POS_I_GAIN_R[MAX_AXIS_NUM]=
 	{
-		AXISR1_I_GAIN,
-		AXISR2_I_GAIN,
-		AXISR3_I_GAIN,
-		AXISR4_I_GAIN,
-		AXISR5_I_GAIN,
-		AXISR6_I_GAIN,
-		AXISR7_I_GAIN
+		AXISR1_POS_I_GAIN,
+		AXISR2_POS_I_GAIN,
+		AXISR3_POS_I_GAIN,
+		AXISR4_POS_I_GAIN,
+		AXISR5_POS_I_GAIN,
+		AXISR6_POS_I_GAIN,
+		AXISR7_POS_I_GAIN
 	};
-	const short int I_GAIN_L[MAX_AXIS_NUM]=
+	const short int POS_I_GAIN_L[MAX_AXIS_NUM]=
 	{
-		AXISL1_I_GAIN,
-		AXISL2_I_GAIN,
-		AXISL3_I_GAIN,
-		AXISL4_I_GAIN,
-		AXISL5_I_GAIN,
-		AXISL6_I_GAIN,
-		AXISL7_I_GAIN
+		AXISL1_POS_I_GAIN,
+		AXISL2_POS_I_GAIN,
+		AXISL3_POS_I_GAIN,
+		AXISL4_POS_I_GAIN,
+		AXISL5_POS_I_GAIN,
+		AXISL6_POS_I_GAIN,
+		AXISL7_POS_I_GAIN
 	};
-	const short int D_GAIN_R[MAX_AXIS_NUM]=
+	const short int POS_D_GAIN_R[MAX_AXIS_NUM]=
 	{
-		AXISR1_D_GAIN,
-		AXISR2_D_GAIN,
-		AXISR3_D_GAIN,
-		AXISR4_D_GAIN,
-		AXISR5_D_GAIN,
-		AXISR6_D_GAIN,
-		AXISR7_D_GAIN
+		AXISR1_POS_D_GAIN,
+		AXISR2_POS_D_GAIN,
+		AXISR3_POS_D_GAIN,
+		AXISR4_POS_D_GAIN,
+		AXISR5_POS_D_GAIN,
+		AXISR6_POS_D_GAIN,
+		AXISR7_POS_D_GAIN
 	};
-	const short int D_GAIN_L[MAX_AXIS_NUM]=
+	const short int POS_D_GAIN_L[MAX_AXIS_NUM]=
 	{
-		AXISL1_D_GAIN,
-		AXISL2_D_GAIN,
-		AXISL3_D_GAIN,
-		AXISL4_D_GAIN,
-		AXISL5_D_GAIN,
-		AXISL6_D_GAIN,
-		AXISL7_D_GAIN
+		AXISL1_POS_D_GAIN,
+		AXISL2_POS_D_GAIN,
+		AXISL3_POS_D_GAIN,
+		AXISL4_POS_D_GAIN,
+		AXISL5_POS_D_GAIN,
+		AXISL6_POS_D_GAIN,
+		AXISL7_POS_D_GAIN
 	};
 
 	//==write PID para  ==//
@@ -355,51 +357,51 @@ void PID_Setting_Dual()
 	for(i=Index_AXIS1;i<MAX_AXIS_NUM;i++)
 	{
 		//==Set P==//
-		dxl_write_byte(gMapRAxisID[i],P_GAIN,P_GAIN_R[i]);//right
-		dxl_write_byte(gMapLAxisID[i],P_GAIN,P_GAIN_L[i]);//left
+		dxl_write_byte(gMapRAxisID[i],POS_P_GAIN,POS_P_GAIN_R[i]);//right
+		dxl_write_byte(gMapLAxisID[i],POS_P_GAIN,POS_P_GAIN_L[i]);//left
 	
 		//==Set I==//
-		dxl_write_byte(gMapRAxisID[i],I_GAIN,I_GAIN_R[i]);//right
-		dxl_write_byte(gMapLAxisID[i],I_GAIN,I_GAIN_L[i]);//left  
+		dxl_write_byte(gMapRAxisID[i],POS_I_GAIN,POS_I_GAIN_R[i]);//right
+		dxl_write_byte(gMapLAxisID[i],POS_I_GAIN,POS_I_GAIN_L[i]);//left  
 
 		//==Set D==//
-		dxl_write_byte(gMapRAxisID[i],D_GAIN,D_GAIN_R[i]);//right
-		dxl_write_byte(gMapLAxisID[i],D_GAIN,D_GAIN_L[i]);//left
+		dxl_write_byte(gMapRAxisID[i], POS_D_GAIN,POS_D_GAIN_R[i]);//right
+		dxl_write_byte(gMapLAxisID[i], POS_D_GAIN, POS_D_GAIN_L[i]);//left
 	}
 
 
 	//==read and check right hand==//
 	int	txrx_result=0;
-	short int p_gain=0;
-	short int i_gain=0,d_gain=0;
+	short int pos_p_gain=0;
+	short int pos_i_gain=0, pos_d_gain=0;
 	short int multi_turn_offset=0;
 	for(i=Index_AXIS1;i<MAX_AXIS_NUM;i++)
 	{
 		printf("===AXIS_R%d===\n",gMapAxisNO[i]);
 
 		//==P GAIN==//
-		p_gain = dxl_read_byte(gMapRAxisID[i], P_GAIN);
-		txrx_result = dxl_get_result();
+		pos_p_gain = dxl_read_byte(gMapRAxisID[i],POS_P_GAIN);
+		txrx_result = dxl_get_comm_result();
 		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed read P_GAIN error=%d\n",txrx_result);
+			printf("Failed read POS_P_GAIN error=%d\n",txrx_result);
 		else
-			printf("P_GAIN=%d\n",p_gain);
+			printf("POS_P_GAIN=%d\n", pos_p_gain);
 	
 		//==I GAIN==//
-		i_gain=dxl_read_byte(gMapRAxisID[i],I_GAIN);
-		txrx_result = dxl_get_result();
+		pos_i_gain =dxl_read_byte(gMapRAxisID[i],POS_I_GAIN);
+		txrx_result = dxl_get_comm_result();
 		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed read I_GAIN error=%d\n",txrx_result);
+			printf("Failed read POS_I_GAIN error=%d\n",txrx_result);
 		else	
-			printf("I_GAIN=%d\n",i_gain);
+			printf("POS_I_GAIN=%d\n", pos_i_gain);
 
 		//==D GAIN==//
-		d_gain=dxl_read_byte(gMapRAxisID[i],D_GAIN);
-		txrx_result = dxl_get_result();
+		pos_d_gain=dxl_read_byte(gMapRAxisID[i],POS_D_GAIN);
+		txrx_result = dxl_get_comm_result();
 		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed Read D_GAIN error=%d\n",txrx_result);
+			printf("Failed Read POS_D_GAIN error=%d\n",txrx_result);
 		else	
-			printf("D_GAIN=%d\n",d_gain);
+			printf("POS_D_GAIN=%d\n",pos_d_gain);
 	}	
 	//==read and check left hand==//
 	for(i=Index_AXIS1;i<MAX_AXIS_NUM;i++)
@@ -407,28 +409,28 @@ void PID_Setting_Dual()
 		printf("===AXIS_L%d===\n",gMapAxisNO[i]);
 
 		//==P GAIN==//
-		p_gain = dxl_read_byte(gMapLAxisID[i], P_GAIN);
-		txrx_result = dxl_get_result();
+		pos_p_gain = dxl_read_byte(gMapLAxisID[i], POS_P_GAIN);
+		txrx_result = dxl_get_comm_result();
 		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed read P_GAIN error=%d\n",txrx_result);
+			printf("Failed read POS_P_GAIN error=%d\n",txrx_result);
 		else
-			printf("P_GAIN=%d\n",p_gain);
+			printf("POS_P_GAIN=%d\n",pos_p_gain);
 	
 		//==I GAIN==//
-		i_gain=dxl_read_byte(gMapLAxisID[i],I_GAIN);
-		txrx_result = dxl_get_result();
+		pos_i_gain =dxl_read_byte(gMapLAxisID[i], POS_I_GAIN);
+		txrx_result = dxl_get_comm_result();
 		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed read I_GAIN error=%d\n",txrx_result);
+			printf("Failed read POS_I_GAIN error=%d\n",txrx_result);
 		else	
-			printf("I_GAIN=%d\n",i_gain);
+			printf("POS_I_GAIN=%d\n", pos_i_gain);
 
 		//==D GAIN==//
-		d_gain=dxl_read_byte(gMapLAxisID[i],D_GAIN);
-		txrx_result = dxl_get_result();
+		pos_d_gain=dxl_read_byte(gMapLAxisID[i], POS_D_GAIN);
+		txrx_result = dxl_get_comm_result();
 		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed Read D_GAIN error=%d\n",txrx_result);
+			printf("Failed Read POS_D_GAIN error=%d\n",txrx_result);
 		else	
-			printf("D_GAIN=%d\n",d_gain);
+			printf("POS_D_GAIN=%d\n",pos_d_gain);
 	}	
 
 }
@@ -440,44 +442,64 @@ int Read_pos(int RLHand,float *pos,unsigned char unit)
 	short int pulse=0;
 	int rt=0;
 
-	for(i=Index_AXIS1;i<MAX_AXIS_NUM;i++)
+	//sync read 
+	dxl2_set_txpacket_id(BROADCAST_ID);
+	dxl2_set_txpacket_instruction(INST_SYNC_READ);
+	unsigned short idx = 0;
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(PRESENT_POS));
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(PRESENT_POS));
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(GOAL_POSITION_LENGTH));
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(GOAL_POSITION_LENGTH));
+
+	if (RLHand == DEF_RIGHT_HAND)
 	{
-		//read pulse
-		if(RLHand==DEF_RIGHT_HAND)
-			pulse = dxl_read_word(gMapRAxisID[i], PRESENT_POS);
-		else if(RLHand==DEF_LEFT_HAND)
-			pulse = dxl_read_word(gMapLAxisID[i], PRESENT_POS);
+		for (int i = Index_AXIS1; i < MAX_AXIS_NUM; i++)
+			dxl2_set_txpacket_parameter(idx++, gMapRAxisID[i]);
+	}
+	else if(RLHand == DEF_RIGHT_HAND)
+	{
+		for (int i = Index_AXIS1; i < MAX_AXIS_NUM; i++)
+			dxl2_set_txpacket_parameter(idx++, gMapLAxisID[i]);
+	}
 
-		//If communication ok calculate pulse offset and unit transform
-		if(dxl_get_result()!=COMM_RXSUCCESS)
-		{
-			rt=-gMapAxisNO[i];
-			pos[i]=0xffff;
-		}
-		else
-		{
-			if(RLHand==DEF_RIGHT_HAND)
-				pulse-=gr2m_offset_pulse_R[i]; //motor to robot offset =>minus offset
-			else if(RLHand==DEF_LEFT_HAND)
-				pulse-=gr2m_offset_pulse_L[i];
+	dxl2_set_txpacket_length(idx + 3);
+	dxl2_txrx_packet();
 
-			if(unit==DEF_UNIT_RAD)
-				pos[i]=pulse*DEF_RATIO_PUS_TO_RAD;
-			else if(unit==DEF_UNIT_DEG)
-				pos[i]=pulse*DEF_RATIO_PUS_TO_DEG;
-			else if(unit==DEF_UNIT_PUS)	
-				pos[i]=pulse;
+	if (dxl_get_comm_result() != COMM_RXSUCCESS)
+		return -1;
+	else
+	{
+		short int pulse = 0;
+
+		for (int i = Index_AXIS1; i < MAX_AXIS_NUM; i++)
+		{
+			if (RLHand == DEF_RIGHT_HAND)
+			{
+				pulse = dxl2_get_sync_read_data_dword(gMapRAxisID[i], PRESENT_POS);
+				pulse -= gr2m_offset_pulse_R[i]; //motor to robot offset =>minus offset
+			}
+			else if (RLHand == DEF_LEFT_HAND)
+			{
+				pulse = dxl2_get_sync_read_data_dword(gMapLAxisID[i], PRESENT_POS);
+				pulse -= gr2m_offset_pulse_L[i];
+			}
+
+			if (unit == DEF_UNIT_RAD)
+				pos[i] = pulse*DEF_RATIO_PUS_TO_RAD;
+			else if (unit == DEF_UNIT_DEG)
+				pos[i] = pulse*DEF_RATIO_PUS_TO_DEG;
+			else if (unit == DEF_UNIT_PUS)
+				pos[i] = pulse;
 			else//non offset pulse
 			{
-				if(RLHand==DEF_RIGHT_HAND)
-					pulse+=gr2m_offset_pulse_R[i];
-				else if(RLHand==DEF_LEFT_HAND)
-					pulse+=gr2m_offset_pulse_L[i];
-				pos[i]=pulse;
+				if (RLHand == DEF_RIGHT_HAND)
+					pulse += gr2m_offset_pulse_R[i];
+				else if (RLHand == DEF_LEFT_HAND)
+					pulse += gr2m_offset_pulse_L[i];
+				pos[i] = pulse;
 			}
 		}
 	}
-		
 	return rt;
 }
 int ReadPresentLoad(int RLHand,float *LoadPercent)
@@ -486,26 +508,48 @@ int ReadPresentLoad(int RLHand,float *LoadPercent)
 	short int LoadValue=0;
 	int rt=0;
 
-	for(i=Index_AXIS1;i<MAX_AXIS_NUM;i++)
-	{
-		//read present load
-		if(RLHand==DEF_RIGHT_HAND)
-			LoadValue = dxl_read_word(gMapRAxisID[i], PRESENT_LOAD);
-		else if(RLHand==DEF_LEFT_HAND)
-			LoadValue = dxl_read_word(gMapLAxisID[i], PRESENT_LOAD);
+	//sync read 
+	dxl2_set_txpacket_id(BROADCAST_ID);
+	dxl2_set_txpacket_instruction(INST_SYNC_READ);
+	unsigned short idx = 0;
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(PRESENT_CURRENT));
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(PRESENT_CURRENT));
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(PRESENT_CURRENT_LENGTH));
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(PRESENT_CURRENT_LENGTH));
 
-		//If communication ok calculate pulse offset and unit transform
-		if(dxl_get_result()!=COMM_RXSUCCESS)
+	if (RLHand == DEF_RIGHT_HAND)
+	{
+		for (int i = Index_AXIS1; i < MAX_AXIS_NUM; i++)
+			dxl2_set_txpacket_parameter(idx++, gMapRAxisID[i]);
+	}
+	else if (RLHand == DEF_LEFT_HAND)
+	{
+		for (int i = Index_AXIS1; i < MAX_AXIS_NUM; i++)
+			dxl2_set_txpacket_parameter(idx++, gMapLAxisID[i]);
+	}
+
+	dxl2_set_txpacket_length(idx + 3);
+	dxl2_txrx_packet();
+
+	if (dxl_get_comm_result() != COMM_RXSUCCESS)
+		return -1;
+	else
+	{
+		for (i = Index_AXIS1; i<MAX_AXIS_NUM; i++)
 		{
-			rt=-gMapAxisNO[i];
-			LoadPercent[i]=0xffff;
-		}
-		else
-		{
-			LoadPercent[i]=(LoadValue&0x3ff)*0.097;//read low 10 bit 0~1024 and calcualte percetage
+			if (RLHand == DEF_RIGHT_HAND)
+			{
+				dxl2_get_sync_read_data_dword(gMapRAxisID[i], PRESENT_POS);
+				LoadPercent[i] = (LoadValue & 0x3ff)*0.097;//read low 10 bit 0~1024 and calcualte percetage
+			}
+			else if (RLHand == DEF_LEFT_HAND)
+			{
+				dxl2_get_sync_read_data_dword(gMapLAxisID[i], PRESENT_POS);
+				LoadPercent[i] = (LoadValue & 0x3ff)*0.097;//read low 10 bit 0~1024 and calcualte percetage
+			}
 		}
 	}
-		
+	
 	return rt;
 }
 
@@ -1282,67 +1326,52 @@ int TestMoveToSewingHome_Dual()
 
 }
 int Torque_Disable()
-{
-	//================================//
-	//==output to motor by syncpage===//
-	//===============================//
-	unsigned short int SyncPage[28]=
-	{ 
-		ID_RAXIS1,(unsigned short int)0, //ID,torque enable
-		ID_RAXIS2,(unsigned short int)0, 
-		ID_RAXIS3,(unsigned short int)0, 
-		ID_RAXIS4,(unsigned short int)0, 
-		ID_RAXIS5,(unsigned short int)0, 
-		ID_RAXIS6,(unsigned short int)0, 
-		ID_RAXIS7,(unsigned short int)0, 
+{	
+	dxl2_set_txpacket_id(BROADCAST_ID);
+	dxl2_set_txpacket_instruction(INST_SYNC_WRITE);
+	unsigned short idx = 0;
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(TORQUE_ENABLE));
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(TORQUE_ENABLE));
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(TORQUE_ENABLE_LENGTH)); //data length
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(TORQUE_ENABLE_LENGTH));
+	for (int i = Index_AXIS1; i < MAX_AXIS_NUM * 2; i++)
+	{
+		dxl2_set_txpacket_parameter(idx++, gMapAllAxisID[i]);
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(0));//torque disable 
+	}
+	dxl2_set_txpacket_length(idx + 3);
+	dxl2_txrx_packet();
 
-		ID_LAXIS1,(unsigned short int)0, 
-		ID_LAXIS2,(unsigned short int)0, 
-		ID_LAXIS3,(unsigned short int)0, 
-		ID_LAXIS4,(unsigned short int)0, 
-		ID_LAXIS5,(unsigned short int)0, 
-		ID_LAXIS6,(unsigned short int)0, 
-		ID_LAXIS7,(unsigned short int)0, 
-	};
-	
-#if (DEBUG)
-	//for(i=Index_AXIS1;i<MAX_AXIS_NUM;i++)
-	//	printf("syncwrite AXIS%d pos=%d velocity=%d\n",gMapAxisNO[i],Ang_pulse[i],velocity[i]);
-#endif
-	
-	syncWrite_x86(TORQUE_ENABLE,1,SyncPage,28);//byte syncWrite(byte start_addr, byte num_of_data, int *param, int array_length);
+	if (dxl_get_comm_result() != COMM_RXSUCCESS)
+		return -1;
+
 
 	return 0;
 }
 
 int SetAllAccTo(float deg_s2)
 {
-	unsigned short int acc_pus=deg_s2*DEF_RATIO_ACC_DEG_TO_PUS;
-
-	//================================//
-	//==output to motor by syncpage===//
-	//===============================//
-	unsigned short int SyncPage[28]=
-	{ 
-		ID_RAXIS1,(unsigned short int)acc_pus, //ID,torque enable
-		ID_RAXIS2,(unsigned short int)acc_pus, 
-		ID_RAXIS3,(unsigned short int)acc_pus, 
-		ID_RAXIS4,(unsigned short int)acc_pus, 
-		ID_RAXIS5,(unsigned short int)acc_pus, 
-		ID_RAXIS6,(unsigned short int)acc_pus, 
-		ID_RAXIS7,(unsigned short int)acc_pus, 
-
-		ID_LAXIS1,(unsigned short int)acc_pus, 
-		ID_LAXIS2,(unsigned short int)acc_pus, 
-		ID_LAXIS3,(unsigned short int)acc_pus, 
-		ID_LAXIS4,(unsigned short int)acc_pus, 
-		ID_LAXIS5,(unsigned short int)acc_pus, 
-		ID_LAXIS6,(unsigned short int)acc_pus, 
-		ID_LAXIS7,(unsigned short int)acc_pus, 
-	};
+	unsigned short int acc_pus=(unsigned short int)deg_s2*DEF_RATIO_ACC_DEG_TO_PUS;
 	
-
-	syncWrite_x86(GOAL_ACC,1,SyncPage,28);//byte syncWrite(byte start_addr, byte num_of_data, int *param, int array_length);
+	dxl2_set_txpacket_id(BROADCAST_ID);
+	dxl2_set_txpacket_instruction(INST_SYNC_WRITE);
+	unsigned short idx = 0; 
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(PROFILE_ACC));
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(PROFILE_ACC));
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(PROFILE_ACC_LENGTH)); //data length
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(PROFILE_ACC_LENGTH));
+	for (int i = Index_AXIS1; i < MAX_AXIS_NUM * 2; i++)
+	{
+		dxl2_set_txpacket_parameter(idx++, (unsigned char)gMapAllAxisID[i]);
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_LOWORD(acc_pus)));//1st data
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_LOWORD(acc_pus)));
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_HIWORD(acc_pus)));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_HIWORD(acc_pus)));
+	}
+	dxl2_set_txpacket_length(idx + 3);
+	dxl2_txrx_packet();
+	if (dxl_get_comm_result() != COMM_RXSUCCESS)
+		return -1;
 
 	return 0;
 }
@@ -1376,37 +1405,90 @@ int Output_to_Dynamixel(int RLHand,const float *Ang_rad,const unsigned short int
 	//================================//
 	//==output to motor by syncpage===//
 	//===============================//
-	unsigned short int SyncPageR[21]=
-	{ 
-		ID_RAXIS1,(unsigned short int)Ang_pulse[Index_AXIS1],velocity[Index_AXIS1], //ID,goal,velocity
-		ID_RAXIS2,(unsigned short int)Ang_pulse[Index_AXIS2],velocity[Index_AXIS2], 
-		ID_RAXIS3,(unsigned short int)Ang_pulse[Index_AXIS3],velocity[Index_AXIS3], 
-		ID_RAXIS4,(unsigned short int)Ang_pulse[Index_AXIS4],velocity[Index_AXIS4], 
-		ID_RAXIS5,(unsigned short int)Ang_pulse[Index_AXIS5],velocity[Index_AXIS5], 
-		ID_RAXIS6,(unsigned short int)Ang_pulse[Index_AXIS6],velocity[Index_AXIS6], 
-		ID_RAXIS7,(unsigned short int)Ang_pulse[Index_AXIS7],velocity[Index_AXIS7], 
-	};
+	//unsigned short int SyncPageR[21]=
+	//{ 
+	//	ID_RAXIS1,(unsigned short int)Ang_pulse[Index_AXIS1],velocity[Index_AXIS1], //ID,goal,velocity
+	//	ID_RAXIS2,(unsigned short int)Ang_pulse[Index_AXIS2],velocity[Index_AXIS2], 
+	//	ID_RAXIS3,(unsigned short int)Ang_pulse[Index_AXIS3],velocity[Index_AXIS3], 
+	//	ID_RAXIS4,(unsigned short int)Ang_pulse[Index_AXIS4],velocity[Index_AXIS4], 
+	//	ID_RAXIS5,(unsigned short int)Ang_pulse[Index_AXIS5],velocity[Index_AXIS5], 
+	//	ID_RAXIS6,(unsigned short int)Ang_pulse[Index_AXIS6],velocity[Index_AXIS6], 
+	//	ID_RAXIS7,(unsigned short int)Ang_pulse[Index_AXIS7],velocity[Index_AXIS7], 
+	//};
 
-	unsigned short int SyncPageL[21]=
-	{ 
-		ID_LAXIS1,(unsigned short int)Ang_pulse[Index_AXIS1],velocity[Index_AXIS1], //ID,goal,velocity
-		ID_LAXIS2,(unsigned short int)Ang_pulse[Index_AXIS2],velocity[Index_AXIS2], 
-		ID_LAXIS3,(unsigned short int)Ang_pulse[Index_AXIS3],velocity[Index_AXIS3], 
-		ID_LAXIS4,(unsigned short int)Ang_pulse[Index_AXIS4],velocity[Index_AXIS4], 
-		ID_LAXIS5,(unsigned short int)Ang_pulse[Index_AXIS5],velocity[Index_AXIS5], 
-		ID_LAXIS6,(unsigned short int)Ang_pulse[Index_AXIS6],velocity[Index_AXIS6], 
-		ID_LAXIS7,(unsigned short int)Ang_pulse[Index_AXIS7],velocity[Index_AXIS7], 
-	};
+	//unsigned short int SyncPageL[21]=
+	//{ 
+	//	ID_LAXIS1,(unsigned short int)Ang_pulse[Index_AXIS1],velocity[Index_AXIS1], //ID,goal,velocity
+	//	ID_LAXIS2,(unsigned short int)Ang_pulse[Index_AXIS2],velocity[Index_AXIS2], 
+	//	ID_LAXIS3,(unsigned short int)Ang_pulse[Index_AXIS3],velocity[Index_AXIS3], 
+	//	ID_LAXIS4,(unsigned short int)Ang_pulse[Index_AXIS4],velocity[Index_AXIS4], 
+	//	ID_LAXIS5,(unsigned short int)Ang_pulse[Index_AXIS5],velocity[Index_AXIS5], 
+	//	ID_LAXIS6,(unsigned short int)Ang_pulse[Index_AXIS6],velocity[Index_AXIS6], 
+	//	ID_LAXIS7,(unsigned short int)Ang_pulse[Index_AXIS7],velocity[Index_AXIS7], 
+	//};
+
+	//================================//
+	//==output to motor by sync write===//
+	//===============================//
+	//==send profile vel==//
+	dxl2_set_txpacket_id(BROADCAST_ID);
+	dxl2_set_txpacket_instruction(INST_SYNC_WRITE);
+	unsigned short idx = 0;
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(PROFILE_VEL));
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(PROFILE_VEL));
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(PROFILE_VEL_LENGTH)); //data length
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(PROFILE_VEL_LENGTH));
+	for (int i = Index_AXIS1; i < MAX_AXIS_NUM; i++)
+	{
+		if (RLHand == DEF_RIGHT_HAND)
+			dxl2_set_txpacket_parameter(idx++, gMapRAxisID[i]);
+		else if (RLHand == DEF_LEFT_HAND)
+			dxl2_set_txpacket_parameter(idx++, gMapLAxisID[i]);
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_LOWORD(velocity[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_LOWORD(velocity[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_HIWORD(velocity[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_HIWORD(velocity[i])));
+	}
+	dxl2_set_txpacket_length(idx + 3);
+	dxl2_txrx_packet();
+	if (dxl_get_comm_result() != COMM_RXSUCCESS)
+		return -1;
+
+	//==send goal position==//
+	dxl2_set_txpacket_id(BROADCAST_ID);
+	dxl2_set_txpacket_instruction(INST_SYNC_WRITE);
+	idx = 0;
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(GOAL_POSITION));
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(GOAL_POSITION));
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(GOAL_POSITION_LENGTH));
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(GOAL_POSITION_LENGTH));
+	for (int i = Index_AXIS1; i < MAX_AXIS_NUM; i++)
+	{
+		if (RLHand == DEF_RIGHT_HAND)
+			dxl2_set_txpacket_parameter(idx++, gMapRAxisID[i]);
+		else if (RLHand == DEF_LEFT_HAND)
+			dxl2_set_txpacket_parameter(idx++, gMapLAxisID[i]);
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_LOWORD(Ang_pulse[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_LOWORD(Ang_pulse[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_HIWORD(Ang_pulse[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_HIWORD(Ang_pulse[i])));
+	}
+	dxl2_set_txpacket_length(idx + 3);
+	dxl2_txrx_packet();
+	if (dxl_get_comm_result() != COMM_RXSUCCESS)
+		return -1;
+
+
 	
-#if (DEBUG)
-	//for(i=Index_AXIS1;i<MAX_AXIS_NUM;i++)
-	//	printf("syncwrite AXIS%d pos=%d velocity=%d\n",gMapAxisNO[i],Ang_pulse[i],velocity[i]);
-#endif
-	if(RLHand==DEF_RIGHT_HAND)
-		syncWrite_x86(GOAL_POSITION,2,SyncPageR,21);//byte syncWrite(byte start_addr, byte num_of_data, int *param, int array_length);
-	else if(RLHand==DEF_LEFT_HAND)
-		syncWrite_x86(GOAL_POSITION,2,SyncPageL,21);//byte syncWrite(byte start_addr, byte num_of_data, int *param, int array_length);
-	
+//#if (DEBUG)
+//	//for(i=Index_AXIS1;i<MAX_AXIS_NUM;i++)
+//	//	printf("syncwrite AXIS%d pos=%d velocity=%d\n",gMapAxisNO[i],Ang_pulse[i],velocity[i]);
+//#endif
+//	if(RLHand==DEF_RIGHT_HAND)
+//		syncWrite_x86(GOAL_POSITION,2,SyncPageR,21);//byte syncWrite(byte start_addr, byte num_of_data, int *param, int array_length);
+//	else if(RLHand==DEF_LEFT_HAND)
+//		syncWrite_x86(GOAL_POSITION,2,SyncPageL,21);//byte syncWrite(byte start_addr, byte num_of_data, int *param, int array_length);
+//	
 	
 	return 0;
 }
@@ -1444,34 +1526,66 @@ int Output_to_Dynamixel_Dual(const float *Ang_rad_R,const unsigned short int *ve
 	}
 
 	//================================//
-	//==output to motor by syncpage===//
+	//==output to motor by sync write===//
 	//===============================//
-	unsigned short int SyncPageR[42]=
-	{ 
-		ID_RAXIS1,(unsigned short int)Ang_pulse_R[Index_AXIS1],velocity_R[Index_AXIS1], //ID,goal,velocity
-		ID_RAXIS2,(unsigned short int)Ang_pulse_R[Index_AXIS2],velocity_R[Index_AXIS2], 
-		ID_RAXIS3,(unsigned short int)Ang_pulse_R[Index_AXIS3],velocity_R[Index_AXIS3], 
-		ID_RAXIS4,(unsigned short int)Ang_pulse_R[Index_AXIS4],velocity_R[Index_AXIS4], 
-		ID_RAXIS5,(unsigned short int)Ang_pulse_R[Index_AXIS5],velocity_R[Index_AXIS5], 
-		ID_RAXIS6,(unsigned short int)Ang_pulse_R[Index_AXIS6],velocity_R[Index_AXIS6], 
-		ID_RAXIS7,(unsigned short int)Ang_pulse_R[Index_AXIS7],velocity_R[Index_AXIS7], 
-		ID_LAXIS1,(unsigned short int)Ang_pulse_L[Index_AXIS1],velocity_L[Index_AXIS1], 
-		ID_LAXIS2,(unsigned short int)Ang_pulse_L[Index_AXIS2],velocity_L[Index_AXIS2], 
-		ID_LAXIS3,(unsigned short int)Ang_pulse_L[Index_AXIS3],velocity_L[Index_AXIS3], 
-		ID_LAXIS4,(unsigned short int)Ang_pulse_L[Index_AXIS4],velocity_L[Index_AXIS4], 
-		ID_LAXIS5,(unsigned short int)Ang_pulse_L[Index_AXIS5],velocity_L[Index_AXIS5], 
-		ID_LAXIS6,(unsigned short int)Ang_pulse_L[Index_AXIS6],velocity_L[Index_AXIS6], 
-		ID_LAXIS7,(unsigned short int)Ang_pulse_L[Index_AXIS7],velocity_L[Index_AXIS7], 
-	};
-	
-#if (DEBUG)
-	//for(i=Index_AXIS1;i<MAX_AXIS_NUM;i++)
-	//	printf("syncwrite AXIS%d pos=%d velocity=%d\n",gMapAxisNO[i],Ang_pulse[i],velocity[i]);
-#endif
-	
-	syncWrite_x86(GOAL_POSITION,2,SyncPageR,42);//byte syncWrite(byte start_addr, byte num_of_data, int *param, int array_length);
-	
-	
+	//==send profile vel==//
+	dxl2_set_txpacket_id(BROADCAST_ID);
+	dxl2_set_txpacket_instruction(INST_SYNC_WRITE);
+	unsigned short idx = 0;
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(PROFILE_VEL));
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(PROFILE_VEL));
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(PROFILE_VEL_LENGTH)); //data length
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(PROFILE_VEL_LENGTH));
+	for (int i = Index_AXIS1; i < MAX_AXIS_NUM; i++)
+	{
+		dxl2_set_txpacket_parameter(idx++, gMapRAxisID[i]);
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_LOWORD(velocity_R[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_LOWORD(velocity_R[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_HIWORD(velocity_R[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_HIWORD(velocity_R[i])));
+	}
+	for (int i = Index_AXIS1; i < MAX_AXIS_NUM; i++)
+	{
+		dxl2_set_txpacket_parameter(idx++, gMapLAxisID[i]);
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_LOWORD(velocity_L[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_LOWORD(velocity_L[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_HIWORD(velocity_L[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_HIWORD(velocity_L[i])));
+	}
+	dxl2_set_txpacket_length(idx + 3);
+	dxl2_txrx_packet();
+	if (dxl_get_comm_result() != COMM_RXSUCCESS)
+		return -1;
+
+	//==send goal positino==//
+	dxl2_set_txpacket_id(BROADCAST_ID);
+	dxl2_set_txpacket_instruction(INST_SYNC_WRITE);
+	idx = 0;
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(GOAL_POSITION));
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(GOAL_POSITION));
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(GOAL_POSITION_LENGTH)); 
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(GOAL_POSITION_LENGTH));
+	for (int i = Index_AXIS1; i < MAX_AXIS_NUM; i++)
+	{
+		dxl2_set_txpacket_parameter(idx++, gMapRAxisID[i]);
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_LOWORD(Ang_pulse_R[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_LOWORD(Ang_pulse_R[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_HIWORD(Ang_pulse_R[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_HIWORD(Ang_pulse_R[i])));
+	}
+	for (int i = Index_AXIS1; i < MAX_AXIS_NUM; i++)
+	{
+		dxl2_set_txpacket_parameter(idx++, gMapLAxisID[i]);
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_LOWORD(Ang_pulse_L[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_LOWORD(Ang_pulse_L[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_HIWORD(Ang_pulse_L[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_HIWORD(Ang_pulse_L[i])));
+	}
+	dxl2_set_txpacket_length(idx + 3);
+	dxl2_txrx_packet();
+	if (dxl_get_comm_result() != COMM_RXSUCCESS)
+		return -1;
+
 	return 0;
 }
 
@@ -1509,24 +1623,70 @@ int Output_to_Dynamixel_pulse(const unsigned short int *Ang_pulse,const unsigned
 	//================================//
 	//==output to motor by syncpage===//
 	//===============================//
-	unsigned short int SyncPage1[21]=
-	{ 
-		ID_RAXIS1,Ang_pulse_with_offset[Index_AXIS1],velocity[Index_AXIS1], //ID,goal,velocity
-		ID_RAXIS2,Ang_pulse_with_offset[Index_AXIS2],velocity[Index_AXIS2], 
-		ID_RAXIS3,Ang_pulse_with_offset[Index_AXIS3],velocity[Index_AXIS3], 
-		ID_RAXIS4,Ang_pulse_with_offset[Index_AXIS4],velocity[Index_AXIS4], 
-		ID_RAXIS5,Ang_pulse_with_offset[Index_AXIS5],velocity[Index_AXIS5], 
-		ID_RAXIS6,Ang_pulse_with_offset[Index_AXIS6],velocity[Index_AXIS6], 
-		ID_RAXIS7,Ang_pulse_with_offset[Index_AXIS7],velocity[Index_AXIS7], 
-	};
+	//unsigned short int SyncPage1[21]=
+	//{ 
+	//	ID_RAXIS1,Ang_pulse_with_offset[Index_AXIS1],velocity[Index_AXIS1], //ID,goal,velocity
+	//	ID_RAXIS2,Ang_pulse_with_offset[Index_AXIS2],velocity[Index_AXIS2], 
+	//	ID_RAXIS3,Ang_pulse_with_offset[Index_AXIS3],velocity[Index_AXIS3], 
+	//	ID_RAXIS4,Ang_pulse_with_offset[Index_AXIS4],velocity[Index_AXIS4], 
+	//	ID_RAXIS5,Ang_pulse_with_offset[Index_AXIS5],velocity[Index_AXIS5], 
+	//	ID_RAXIS6,Ang_pulse_with_offset[Index_AXIS6],velocity[Index_AXIS6], 
+	//	ID_RAXIS7,Ang_pulse_with_offset[Index_AXIS7],velocity[Index_AXIS7], 
+	//};
+
+	//================================//
+	//==output to motor by sync write===//
+	//===============================//
+	//==send profile vel==//
+	dxl2_set_txpacket_id(BROADCAST_ID);
+	dxl2_set_txpacket_instruction(INST_SYNC_WRITE);
+	unsigned short idx = 0;
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(PROFILE_VEL));
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(PROFILE_VEL));
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(PROFILE_VEL_LENGTH)); //data length
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(PROFILE_VEL_LENGTH));
+	for (int i = Index_AXIS1; i < MAX_AXIS_NUM; i++)
+	{
+		dxl2_set_txpacket_parameter(idx++, gMapRAxisID[i]);
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_LOWORD(velocity[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_LOWORD(velocity[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_HIWORD(velocity[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_HIWORD(velocity[i])));
+	}
+	dxl2_set_txpacket_length(idx + 3);
+	dxl2_txrx_packet();
+	if (dxl_get_comm_result() != COMM_RXSUCCESS)
+		return -1;
+
+	//==send goal position==//
+	dxl2_set_txpacket_id(BROADCAST_ID);
+	dxl2_set_txpacket_instruction(INST_SYNC_WRITE);
+	idx = 0;
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(GOAL_POSITION));
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(GOAL_POSITION));
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(GOAL_POSITION_LENGTH));
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(GOAL_POSITION_LENGTH));
+	for (int i = Index_AXIS1; i < MAX_AXIS_NUM; i++)
+	{
+		dxl2_set_txpacket_parameter(idx++, gMapRAxisID[i]);
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_LOWORD(Ang_pulse_with_offset[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_LOWORD(Ang_pulse_with_offset[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_HIWORD(Ang_pulse_with_offset[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_HIWORD(Ang_pulse_with_offset[i])));
+	}
+	dxl2_set_txpacket_length(idx + 3);
+	dxl2_txrx_packet();
+	if (dxl_get_comm_result() != COMM_RXSUCCESS)
+		return -1;
+
 
 	
-#if (DEBUG)
-	for(i=Index_AXIS1;i<MAX_AXIS_NUM;i++)
-		printf("syncwrite AXIS%d pos=%d velocity=%d\n",gMapAxisNO[i],Ang_pulse[i],velocity[i]);
-#endif
-
-	syncWrite_x86(GOAL_POSITION,2,SyncPage1,21);//byte syncWrite(byte start_addr, byte num_of_data, int *param, int array_length);
+//#if (DEBUG)
+//	for(i=Index_AXIS1;i<MAX_AXIS_NUM;i++)
+//		printf("syncwrite AXIS%d pos=%d velocity=%d\n",gMapAxisNO[i],Ang_pulse[i],velocity[i]);
+//#endif
+//
+//	syncWrite_x86(GOAL_POSITION,2,SyncPage1,21);//byte syncWrite(byte start_addr, byte num_of_data, int *param, int array_length);
   
 	return 0;
 }
@@ -2381,7 +2541,7 @@ int MoveToPoint(int RLHand,float Point[7],float vel_deg)  //point[x,y,z,alpha,be
 	float Pose_rad[3]={Point[DEF_ALPHA]*DEF_RATIO_DEG_TO_RAD,Point[DEF_BETA]*DEF_RATIO_DEG_TO_RAD,Point[DEF_GAMMA]*DEF_RATIO_DEG_TO_RAD};
 	float Rednt_alpha=Point[DEF_REDNT_ALPHA]*DEF_RATIO_DEG_TO_RAD;
 	float theta[7]={0};
-	int vel_pus=(int)(vel_deg*DEF_RATIO_VEL_DEG_TO_PUS);
+	unsigned short int vel_pus=(unsigned short int)(vel_deg*DEF_RATIO_VEL_DEG_TO_PUS);
 	int rt=0;
 	
 	//inverse kinematics
@@ -2572,33 +2732,46 @@ int MoveToPoint_Dual(float Point_R[7],float Point_L[7])
 int IsMoving(int RLHand,bool *stillmoving)	
 {
 	int rt=0;
-	int moving=0;
+	unsigned short moving=0;
 
-	for(int i=Index_AXIS1;i<MAX_AXIS_NUM;i++)
+	dxl2_set_txpacket_id(BROADCAST_ID);
+	dxl2_set_txpacket_instruction(INST_SYNC_READ);
+	unsigned short idx = 0;
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(STILL_MOVING));
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(STILL_MOVING));
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(STILL_MOVING_LENGTH));
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(STILL_MOVING_LENGTH));
+
+	for (int i = Index_AXIS1; i < MAX_AXIS_NUM; i++)
 	{
-		//read pulse
-		if(RLHand==DEF_RIGHT_HAND)
-			moving = dxl_read_byte(gMapRAxisID[i], STILL_MOVING);
-		else if(RLHand==DEF_LEFT_HAND)
-			moving = dxl_read_byte(gMapLAxisID[i], STILL_MOVING);
+		if (RLHand == DEF_RIGHT_HAND)
+			dxl2_set_txpacket_parameter(idx++, gMapRAxisID[i]);
+		else if (RLHand == DEF_LEFT_HAND)
+			dxl2_set_txpacket_parameter(idx++, gMapLAxisID[i]);
+	}
 
-		//If communication ok 
-		if(dxl_get_result()==COMM_RXSUCCESS)
+	dxl2_set_txpacket_length(idx + 3);
+	dxl2_txrx_packet();
+
+	if (dxl_get_comm_result() != COMM_RXSUCCESS)
+		rt = 1;
+	else
+	{
+		moving=0;
+		for (int i = Index_AXIS1; i < MAX_AXIS_NUM; i++)
 		{
-			if(moving==1)
-				break;	
-		}	
-		else
-		{
-			rt=1;//communication error
-			break; 
+			if (RLHand == DEF_RIGHT_HAND)
+				moving = dxl2_get_sync_read_data_word(gMapRAxisID[i], STILL_MOVING);
+			else if (RLHand == DEF_LEFT_HAND)
+				moving = dxl2_get_sync_read_data_word(gMapLAxisID[i], STILL_MOVING);
+			
+			if (moving == 1)
+				break;
 		}
 	}
 
-
-	(*stillmoving)=(moving==1)?true:false;
+	(*stillmoving)=(moving==1) ? true:false;
 	return rt;
-		
 }
 
 void QPDelay_ms(int t_ms)
@@ -2620,70 +2793,90 @@ void QPDelay_ms(int t_ms)
 	while((double)(nEndTime.QuadPart-nBeginTime.QuadPart)*1000/(double)nFreq.QuadPart < t_ms);
 }	
 
-int syncWrite_x86(unsigned short int start_addr, unsigned short int data_length, unsigned short int *param, unsigned short int param_length) // WORD(16bit) syncwrite() for DXL  stanley
-{
-    //syncWrite_u16base(GOAL_POSITION,2,SyncPage1,21);//byte syncWrite(byte start_addr, byte num_of_data, int *param, int array_length);
-	dxl_set_txpacket_id(BROADCAST_ID);
-	dxl_set_txpacket_instruction(INST_SYNC_WRITE);
-	dxl_set_txpacket_parameter(0, start_addr);
-	dxl_set_txpacket_parameter(1,data_length*2);
+//int syncWrite_x86(unsigned short int start_addr, unsigned short int data_length, unsigned short int *param, unsigned short int param_length) // WORD(16bit) syncwrite() for DXL  stanley
+//{
+//    //syncWrite_u16base(GOAL_POSITION,2,SyncPage1,21);//byte syncWrite(byte start_addr, byte num_of_data, int *param, int array_length);
+//	dxl_set_txpacket_id(BROADCAST_ID);
+//	dxl_set_txpacket_instruction(INST_SYNC_WRITE);
+//	dxl_set_txpacket_parameter(0, start_addr);
+//	dxl_set_txpacket_parameter(1,data_length*2);
+//
+//	int slaveNum=param_length/(data_length+1);
+//    int OneRawByte=(1+data_length*2);//ID(1byte) + worddata*len(2byte*len)
+//
+//    int i=0; //offset of slave number(number of row)
+//    int j=0; //offset of data in raw
+//    int k=1;//offset of int *param 
+//    int index=0;
+//
+//    for( i=0; i<slaveNum; i++ )
+//    { 
+//        index=OneRawByte*i+2;
+//        dxl_set_txpacket_parameter(index,(unsigned char)param[i*(data_length+1)]);//ID
+//        k=1;
+//
+//        for(j=1;j<OneRawByte;j+=2)
+//        {
+//            dxl_set_txpacket_parameter(index+j,(unsigned char)(param[i*(data_length+1)+k]&0xff)); //DATA L    
+//            dxl_set_txpacket_parameter(index+j+1,(unsigned char)(param[i*(data_length+1)+k]>>8)); //DATA H
+//            k++;
+//        }
+//    } 
+//	
+//    dxl_set_txpacket_length(OneRawByte*slaveNum+4);
+//
+//	//for(int i=0;i<50;i++)
+//	//	printf("gbInstructionPacket[%d]=%x\n",i,gbInstructionPacket[i]);//stanley test
+//
+//    dxl_txrx_packet();
+//	int CommStatus =0;
+//	CommStatus=dxl_get_comm_result();
+//
+//    return CommStatus;
+//
+//}
 
-	int slaveNum=param_length/(data_length+1);
-    int OneRawByte=(1+data_length*2);//ID(1byte) + worddata*len(2byte*len)
+//int setPosition_x86(int ServoID, int Position, int Speed)//stanley
+//{
+//	dxl_set_txpacket_id(ServoID);
+//	dxl_set_txpacket_instruction(INST_WRITE);
+//	dxl_set_txpacket_parameter(0,GOAL_POSITION);
+//	dxl_set_txpacket_parameter(1,(unsigned char)dxl_get_lowbyte(Position));
+//	dxl_set_txpacket_parameter(2,(unsigned char)dxl_get_highbyte(Position));
+//	dxl_set_txpacket_parameter(3,(unsigned char)dxl_get_lowbyte(Speed));
+//	dxl_set_txpacket_parameter(4,(unsigned char)dxl_get_highbyte(Speed));
+//	dxl_set_txpacket_length(7);
+//
+//	dxl_txrx_packet();
+//
+//	int CommStatus =0;
+//	CommStatus=dxl_get_comm_result();
+//
+//	return CommStatus;
+//}
 
-    int i=0; //offset of slave number(number of row)
-    int j=0; //offset of data in raw
-    int k=1;//offset of int *param 
-    int index=0;
-
-    for( i=0; i<slaveNum; i++ )
-    { 
-        index=OneRawByte*i+2;
-        dxl_set_txpacket_parameter(index,(unsigned char)param[i*(data_length+1)]);//ID
-        k=1;
-
-        for(j=1;j<OneRawByte;j+=2)
-        {
-            dxl_set_txpacket_parameter(index+j,(unsigned char)(param[i*(data_length+1)+k]&0xff)); //DATA L    
-            dxl_set_txpacket_parameter(index+j+1,(unsigned char)(param[i*(data_length+1)+k]>>8)); //DATA H
-            k++;
-        }
-    } 
-	
-    dxl_set_txpacket_length(OneRawByte*slaveNum+4);
-
-	//for(int i=0;i<50;i++)
-	//	printf("gbInstructionPacket[%d]=%x\n",i,gbInstructionPacket[i]);//stanley test
-
-    dxl_txrx_packet();
-	int CommStatus =0;
-	CommStatus=dxl_get_result();
-
-    return CommStatus;
-
-}
-
-int setPosition_x86(int ServoID, int Position, int Speed)//stanley
+int setPosition_x64(int ServoID, int Position, int Speed)//stanley
 {
 	dxl_set_txpacket_id(ServoID);
 	dxl_set_txpacket_instruction(INST_WRITE);
 	dxl_set_txpacket_parameter(0,GOAL_POSITION);
-	dxl_set_txpacket_parameter(1,(unsigned char)dxl_get_lowbyte(Position));
-	dxl_set_txpacket_parameter(2,(unsigned char)dxl_get_highbyte(Position));
-	dxl_set_txpacket_parameter(3,(unsigned char)dxl_get_lowbyte(Speed));
-	dxl_set_txpacket_parameter(4,(unsigned char)dxl_get_highbyte(Speed));
+	dxl_set_txpacket_parameter(1,DXL_LOBYTE(Position));
+	dxl_set_txpacket_parameter(2,DXL_HIBYTE(Position));
+	dxl_set_txpacket_parameter(3,DXL_LOBYTE(Speed));
+	dxl_set_txpacket_parameter(4,DXL_HIBYTE(Speed));
 	dxl_set_txpacket_length(7);
 
 	dxl_txrx_packet();
 
 	int CommStatus =0;
-	CommStatus=dxl_get_result();
+	CommStatus=dxl_get_comm_result();
 
 	return CommStatus;
 }
 
 
-int DXL_Initial_x86()
+
+int DXL_Initial()
 {
 	int rt=0;
 	//const int default_portnum=6;//latte_panda
@@ -2697,7 +2890,7 @@ int DXL_Initial_x86()
 	return rt;
 }
  
-int DXL_Terminate_x86()
+int DXL_Terminate()
 {
 	dxl_terminate();
 	
@@ -3227,4 +3420,279 @@ void testcv()
 	int RecvParam = 0;
 	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)TestThread, (void*)&RecvParam, 0, NULL);
 
+}
+
+int dxl2test()
+{
+	int giID_List[2] = {1,2};
+
+
+	int port_num = 5, baud_rate = 1000000;
+	if (dxl_initialize(port_num, baud_rate) == 0)
+	{
+		_cprintf("Failed to open USB2Dynamixel!\n");
+		_cprintf("Press any key to terminate...\n");
+		_getch();
+		return 0;
+	}
+	else
+		_cprintf("Succeed to open USB2Dynamixel!\n\n");
+
+	for (int i = 0; i < (sizeof(giID_List) / sizeof(*giID_List)); i++)
+	{
+		dxl2_write_dword(giID_List[i], MAX_POS_LIMIT, 4090);
+		if (dxl_get_comm_result() != COMM_RXSUCCESS)
+			_cprintf("ID %d : Write Faild\n", giID_List[i]);
+		else
+			_cprintf("ID %d : Write Succeed\n", giID_List[i]);
+	}
+
+	for (int i = 0; i < (sizeof(giID_List) / sizeof(*giID_List)); i++)
+	{
+		dxl2_write_dword(giID_List[i], MIN_POS_LIMIT, 0);
+		if (dxl_get_comm_result() != COMM_RXSUCCESS)
+			_cprintf("ID %d : Write Faild\n", giID_List[i]);
+		else
+			_cprintf("ID %d : Write Succeed\n", giID_List[i]);
+	}
+
+
+
+
+	_cprintf("/======================= read/write test =======================/\n");
+
+	_cprintf("Torque On\n");
+	for (int i = 0; i < (sizeof(giID_List) / sizeof(*giID_List)); i++)
+	{
+		dxl2_write_byte(giID_List[i], TORQUE_ENABLE, 1);
+		if (dxl_get_comm_result() != COMM_RXSUCCESS)
+			_cprintf("ID %d : Torque on Faild\n", giID_List[i]);
+		else
+			_cprintf("ID %d : Torque on Succeed\n", giID_List[i]);
+	}
+
+	_cprintf("\nWrite\n");
+
+
+	for (int i = 0; i < (sizeof(giID_List) / sizeof(*giID_List)); i++)
+	{
+		dxl2_write_dword(giID_List[i], PROFILE_ACC, 10);
+		if (dxl_get_comm_result() != COMM_RXSUCCESS)
+			_cprintf("ID %d : Write Faild\n", giID_List[i]);
+		else
+			_cprintf("ID %d : Write Succeed\n", giID_List[i]);
+	}
+
+	for (int i = 0; i < (sizeof(giID_List) / sizeof(*giID_List)); i++)
+	{
+		dxl2_write_dword(giID_List[i], PROFILE_VEL, 100);
+		if (dxl_get_comm_result() != COMM_RXSUCCESS)
+			_cprintf("ID %d : Write Faild\n", giID_List[i]);
+		else
+			_cprintf("ID %d : Write Succeed\n", giID_List[i]);
+	}
+
+
+	for (int i = 0; i < (sizeof(giID_List) / sizeof(*giID_List)); i++)
+	{
+		dxl2_write_dword(giID_List[i], GOAL_POSITION, 1020);
+		if (dxl_get_comm_result() != COMM_RXSUCCESS)
+			_cprintf("ID %d : Write Faild\n", giID_List[i]);
+		else
+			_cprintf("ID %d : Write Succeed\n", giID_List[i]);
+	}
+
+	_cprintf("\nRead\n");
+	unsigned char is_moving = 1;
+	while (is_moving)
+	{
+		
+		for (int i = 0; i < (sizeof(giID_List) / sizeof(*giID_List)); i++)
+		{
+			long pos = (long)dxl2_read_dword(giID_List[i], PRESENT_POS);
+			if (dxl_get_comm_result() != COMM_RXSUCCESS)
+				_cprintf(" ID %d : Read Faild\n", giID_List[i]);
+			else
+				_cprintf(" [ID %d : %d]", giID_List[i], pos);
+		}
+			//if (pos < 2000 - 300)
+			//	is_moving = true;
+		is_moving= dxl2_read_byte(giID_List[0], STILL_MOVING);
+
+		
+		_cprintf("\n");
+
+		if (is_moving == 0)
+			break;
+	}
+
+
+	for (int i = 0; i < (sizeof(giID_List) / sizeof(*giID_List)); i++)
+	{
+		dxl2_write_dword(giID_List[i], TORQUE_ENABLE, 0);
+		if (dxl_get_comm_result() != COMM_RXSUCCESS)
+			_cprintf("ID %d : Write Faild\n", giID_List[i]);
+		else
+			_cprintf("ID %d : Write Succeed\n", giID_List[i]);
+	}
+
+	return 0;
+}
+
+int dxl2_sync_test()
+{
+	int giID_List[2] = { 1,14 };
+
+	int port_num = 5, baud_rate = 1000000;
+	if (dxl_initialize(port_num, baud_rate) == 0)
+	{
+		_cprintf("Failed to open USB2Dynamixel!\n");
+		_cprintf("Press any key to terminate...\n");
+		_getch();
+		return 0;
+	}
+	else
+		_cprintf("Succeed to open USB2Dynamixel!\n\n");
+
+
+	
+	printf("/==================== sync write/read test ====================/\n");
+	
+	dxl2_set_txpacket_id(BROADCAST_ID);
+	dxl2_set_txpacket_instruction(INST_SYNC_WRITE);
+	unsigned short idx = 0;
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(TORQUE_ENABLE));
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(TORQUE_ENABLE));
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(TORQUE_ENABLE_LENGTH)); //data length
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(TORQUE_ENABLE_LENGTH));
+	for (int i = 0; i < (sizeof(giID_List) / sizeof(*giID_List)); i++)
+	{
+		dxl2_set_txpacket_parameter(idx++, (unsigned char)giID_List[i]);
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(1));//data
+		
+	}
+	dxl2_set_txpacket_length(idx + 3);
+	dxl2_txrx_packet();
+	if (dxl_get_comm_result() != COMM_RXSUCCESS)
+		_cprintf(" Sync write torque enable Faild\n");
+
+	
+	dxl2_set_txpacket_id(BROADCAST_ID);
+	dxl2_set_txpacket_instruction(INST_SYNC_WRITE);
+	idx = 0;
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(PROFILE_VEL));
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(PROFILE_VEL));
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(PROFILE_VEL_LENGTH)); //data length
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(PROFILE_VEL_LENGTH));
+	for (int i = 0; i < (sizeof(giID_List) / sizeof(*giID_List)); i++)
+	{
+		dxl2_set_txpacket_parameter(idx++, (unsigned char)giID_List[i]);
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_LOWORD(10)));//1st data
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_LOWORD(10)));
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_HIWORD(10)));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_HIWORD(10)));
+	}
+	dxl2_set_txpacket_length(idx + 3);
+	dxl2_txrx_packet();
+	if (dxl_get_comm_result() != COMM_RXSUCCESS)
+		_cprintf(" Sync write vel enable Faild\n");
+
+	dxl2_set_txpacket_id(BROADCAST_ID);//1ms
+	dxl2_set_txpacket_instruction(INST_SYNC_WRITE);
+	idx = 0;
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(GOAL_POSITION));
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(GOAL_POSITION));
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(GOAL_POSITION_LENGTH)); //data length
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(GOAL_POSITION_LENGTH));
+	for (int i = 0; i < (sizeof(giID_List) / sizeof(*giID_List)); i++)
+	{
+		dxl2_set_txpacket_parameter(idx++, (unsigned char)giID_List[i]);
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_LOWORD(2000)));//ID1 data
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_LOWORD(2000)));//ID1 data
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_HIWORD(2000)));//ID1 data
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_HIWORD(2000)));//ID1 data
+	}
+	dxl2_set_txpacket_length(idx + 3);
+	dxl2_txrx_packet();
+	if (dxl_get_comm_result() != COMM_RXSUCCESS)
+		_cprintf(" Sync write goal position\n");
+
+	bool is_moving = true;
+	while (is_moving)
+	{
+		dxl2_set_txpacket_id(BROADCAST_ID);//10ms
+		dxl2_set_txpacket_instruction(INST_SYNC_READ);
+		idx = 0;
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(PRESENT_POS));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(PRESENT_POS));
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(GOAL_POSITION_LENGTH));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(GOAL_POSITION_LENGTH));
+		for (int i = 0; i < (sizeof(giID_List) / sizeof(*giID_List)); i++)
+			dxl2_set_txpacket_parameter(idx++, (unsigned char)giID_List[i]);
+		dxl2_set_txpacket_length(idx + 3);
+	
+		dxl2_txrx_packet();
+
+		if (dxl_get_comm_result() != COMM_RXSUCCESS)
+			_cprintf(" Sync Read Faild\n");
+
+
+		for (int i = 0; i < (sizeof(giID_List) / sizeof(*giID_List)); i++)
+		{
+			long pos = dxl2_get_sync_read_data_dword(giID_List[i], PRESENT_POS);
+			_cprintf(" [ID %d : %d]", giID_List[i], pos);
+
+			
+		}
+		_cprintf("\n");
+
+
+		dxl2_set_txpacket_id(BROADCAST_ID);
+		dxl2_set_txpacket_instruction(INST_SYNC_READ);
+		idx = 0;
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(STILL_MOVING));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(STILL_MOVING));
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(STILL_MOVING_LENGTH));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(STILL_MOVING_LENGTH));
+
+		for (int i = 0; i < (sizeof(giID_List) / sizeof(*giID_List)); i++)
+			dxl2_set_txpacket_parameter(idx++, (unsigned char)giID_List[i]);
+		dxl2_set_txpacket_length(idx + 3);
+		dxl2_txrx_packet();
+
+		if (dxl_get_comm_result() != COMM_RXSUCCESS)
+			_cprintf(" Sync Read Faild\n");
+		
+		for (int i = 0; i < (sizeof(giID_List) / sizeof(*giID_List)); i++)
+		{
+			unsigned short moving = dxl2_get_sync_read_data_word(giID_List[i], STILL_MOVING);
+			_cprintf(" [ID %d : %d]", giID_List[i], moving);
+
+			
+			is_moving = (moving == 1) ? true :false;
+			
+		}
+
+	}
+
+	dxl2_set_txpacket_id(BROADCAST_ID);
+	dxl2_set_txpacket_instruction(INST_SYNC_WRITE);
+	idx = 0;
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(TORQUE_ENABLE));
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(TORQUE_ENABLE));
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(TORQUE_ENABLE_LENGTH)); //data length
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(TORQUE_ENABLE_LENGTH));
+	for (int i = 0; i < (sizeof(giID_List) / sizeof(*giID_List)); i++)
+	{
+		dxl2_set_txpacket_parameter(idx++, (unsigned char)giID_List[i]);
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(0));//1st data
+	}
+	dxl2_set_txpacket_length(idx + 3);
+	dxl2_txrx_packet();
+
+
+	_cprintf("/=============== sync write/read test complete ================/\n");
+	_cprintf("\n");
+
+	return 0;
 }

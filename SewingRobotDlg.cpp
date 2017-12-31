@@ -126,7 +126,7 @@ cF446RE* gpF446RE;
 void CSewingRobotDlg::OnBnClickedBtnIniDxl()
 {
 	// TODO: 在此加入控制項告知處理常式程式碼
-	int rt = DXL_Initial_x86();
+	int rt = DXL_Initial();
 	if (rt == 0)
 	{
 		//OutputDebugString("Hello, OutputDebugString.\n");
@@ -138,9 +138,12 @@ void CSewingRobotDlg::OnBnClickedBtnIniDxl()
 
 void CSewingRobotDlg::OnBnClickedBtnSewprocess()
 {
-	PID_Setting_Dual();
-	SetAllAccTo(20); //20 deg/acc^
-	TestSewingAction();
+	//PID_Setting_Dual();
+	//SetAllAccTo(20); //20 deg/acc^
+	//TestSewingAction();
+
+	//dxl2test();
+	dxl2_sync_test();
 }
 
 
@@ -205,7 +208,7 @@ void CSewingRobotDlg::OnClose()
 {
 	// TODO: 在此加入您的訊息處理常式程式碼和 (或) 呼叫預設值
 
-	DXL_Terminate_x86();
+	DXL_Terminate();
 	gpF446RE->close();
 
 
@@ -224,9 +227,10 @@ void CSewingRobotDlg::OnBnClickedChkSpindle()
 
 void CSewingRobotDlg::OnBnClickedChkFootlifter()
 {
-	bool sw = ((CButton*)GetDlgItem(IDC_CHK_FOOTLIFTER))->GetCheck();
+	int sw = ((CButton*)GetDlgItem(IDC_CHK_FOOTLIFTER))->GetCheck();
+	bool bsw = (sw == 1) ? true : false;
 	//F446RE_FootLifter(sw);
-	gpF446RE->FootLifter(sw);
+	gpF446RE->FootLifter(bsw);
 }
 
 
@@ -234,7 +238,7 @@ void CSewingRobotDlg::OnBnClickedBtnMovetohome()
 {
 	// TODO: 在此加入控制項告知處理常式程式碼
 	//testcv();
-	//TestMoveToSewingHome_Dual();
+	TestMoveToSewingHome_Dual();
 }
 
 
