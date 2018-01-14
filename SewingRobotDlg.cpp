@@ -130,7 +130,7 @@ void CSewingRobotDlg::OnBnClickedBtnIniDxl()
 	if (rt == 0)
 	{
 		//OutputDebugString("Hello, OutputDebugString.\n");
-		_cprintf("DXL_Initial_x86 failed%d\n",1);
+		_cprintf("DXL_Initial_x86 failed rt=%d\n",1);
 		//getchar();
 		//return 0;
 	}
@@ -138,12 +138,16 @@ void CSewingRobotDlg::OnBnClickedBtnIniDxl()
 
 void CSewingRobotDlg::OnBnClickedBtnSewprocess()
 {
+
 	//PID_Setting_Dual();
 	//SetAllAccTo(20); //20 deg/acc^
 	//TestSewingAction();
+	ROM_Setting_Dual();
+
+	//TestRead_pos();
 
 	//dxl2test();
-	dxl2_sync_test();
+	//dxl2_sync_test();
 }
 
 
@@ -219,9 +223,10 @@ void CSewingRobotDlg::OnClose()
 void CSewingRobotDlg::OnBnClickedChkSpindle()
 {
 	// TODO: 在此加入控制項告知處理常式程式碼
-	bool sw = ((CButton*)GetDlgItem(IDC_CHK_SPINDLE))->GetCheck();
+	int sw = ((CButton*)GetDlgItem(IDC_CHK_SPINDLE))->GetCheck();
+	bool bsw = (sw == 1) ? true : false;
 	//F446RE_Spindle(sw);
-	gpF446RE->Spindle(sw);
+	gpF446RE->Spindle(bsw);
 }
 
 

@@ -32,18 +32,23 @@
 //#define F446RE_GRIPPER_EN
 //#define CHECK_CARTESIAN_PATH 
 //#define GRIPPER_ON_LATTE
-#define MOVETOPOINT_DUAL
+//#define MOVETOPOINT_DUAL
 //#define CHECK_JOINT_PATH  
 //#define CHECK_JOINT_VELOCITY
 //#define MOVE_TO_INITIAL_POINT
-//#define RECORD_JOINT_ANGLE
+#define RECORD_JOINT_ANGLE
 //#define RECORD_JOINT_LOAD
 //#define DEF_WAIT_ENTER
 
 const float gCycleT=0.5;
 
+std::fstream gfileR;
+std::fstream gfileL;
+static float gstatic_abst = 0;
+
 using namespace cv;
 using namespace std;
+
 
 //#if (DEBUG)
 //	#define DBGMSG(x)  printf x;
@@ -167,22 +172,22 @@ int ROM_Setting_Dual()
 
 
 
-	unsigned short int Motor_lim_pulse_R_high[MAX_AXIS_NUM]={0};
-	unsigned short int Motor_lim_pulse_R_low[MAX_AXIS_NUM]={0};
-	unsigned short int Motor_lim_pulse_L_high[MAX_AXIS_NUM]={0};
-	unsigned short int Motor_lim_pulse_L_low[MAX_AXIS_NUM]={0};
+	unsigned long Motor_lim_pulse_R_high[MAX_AXIS_NUM]={0};
+	unsigned long Motor_lim_pulse_R_low[MAX_AXIS_NUM]={0};
+	unsigned long Motor_lim_pulse_L_high[MAX_AXIS_NUM]={0};
+	unsigned long Motor_lim_pulse_L_low[MAX_AXIS_NUM]={0};
 	
 
 	int i=0;
 	for(i=Index_AXIS1;i<MAX_AXIS_NUM;i++)
 	{
 		//right hand
-		Motor_lim_pulse_R_low[i]=(unsigned short int)((ROBOT_LIM_DEG_R_LOW[i]+R2M_OFFSET_DEG_R[i])*DEF_RATIO_DEG_TO_PUS);
-		Motor_lim_pulse_R_high[i]=(unsigned short int)((ROBOT_LIM_DEG_R_HIGH[i]+R2M_OFFSET_DEG_R[i])*DEF_RATIO_DEG_TO_PUS);
+		Motor_lim_pulse_R_low[i]=(unsigned long)((ROBOT_LIM_DEG_R_LOW[i]+R2M_OFFSET_DEG_R[i])*DEF_RATIO_DEG_TO_PUS);
+		Motor_lim_pulse_R_high[i]=(unsigned long)((ROBOT_LIM_DEG_R_HIGH[i]+R2M_OFFSET_DEG_R[i])*DEF_RATIO_DEG_TO_PUS);
 
 		//left hand
-		Motor_lim_pulse_L_low[i]=(unsigned short int)((ROBOT_LIM_DEG_L_LOW[i]+R2M_OFFSET_DEG_L[i])*DEF_RATIO_DEG_TO_PUS);
-		Motor_lim_pulse_L_high[i]=(unsigned short int)((ROBOT_LIM_DEG_L_HIGH[i]+R2M_OFFSET_DEG_L[i])*DEF_RATIO_DEG_TO_PUS);
+		Motor_lim_pulse_L_low[i]=(unsigned long)((ROBOT_LIM_DEG_L_LOW[i]+R2M_OFFSET_DEG_L[i])*DEF_RATIO_DEG_TO_PUS);
+		Motor_lim_pulse_L_high[i]=(unsigned long)((ROBOT_LIM_DEG_L_HIGH[i]+R2M_OFFSET_DEG_L[i])*DEF_RATIO_DEG_TO_PUS);
 	}
 
 	//==writing to ROM==//
@@ -193,11 +198,11 @@ int ROM_Setting_Dual()
 		//dxl_write_word(gMapLAxisID[i],MAX_TORQUE,Max_torque_L[i]);//left
 	
 		//==Set angel limit==//
-		dxl_write_word(gMapRAxisID[i], MIN_POS_LIMIT,Motor_lim_pulse_R_low[i]);//right
-		dxl_write_word(gMapRAxisID[i], MAX_POS_LIMIT,Motor_lim_pulse_R_high[i]);//right  
+		dxl2_write_dword(gMapRAxisID[i], MIN_POS_LIMIT,Motor_lim_pulse_R_low[i]);//right
+		dxl2_write_dword(gMapRAxisID[i], MAX_POS_LIMIT,Motor_lim_pulse_R_high[i]);//right  
 
-		dxl_write_word(gMapLAxisID[i], MIN_POS_LIMIT,Motor_lim_pulse_L_low[i]);//left
-		dxl_write_word(gMapLAxisID[i], MAX_POS_LIMIT,Motor_lim_pulse_L_high[i]);//left  
+		dxl2_write_dword(gMapLAxisID[i], MIN_POS_LIMIT,Motor_lim_pulse_L_low[i]);//left
+		dxl2_write_dword(gMapLAxisID[i], MAX_POS_LIMIT,Motor_lim_pulse_L_high[i]);//left  
 
 		//==Set MULTITURN_OFFSET to 0==//
 		//dxl_write_word(gMapRAxisID[i],MULTITURN_OFFSET,0);//right
@@ -207,12 +212,12 @@ int ROM_Setting_Dual()
 
 	//==read and check right hand==//
 	int	txrx_result=0;
-	short int max_torque=0;
-	short int min_pos_lim=0,max_pos_lim=0;
-	short int multi_turn_offset=0;
+	//short int max_torque=0;
+	unsigned long min_pos_lim=0,max_pos_lim=0;
+	//short int multi_turn_offset=0;
 	for(i=Index_AXIS1;i<MAX_AXIS_NUM;i++)
 	{
-		printf("===AXIS_R%d===\n",gMapAxisNO[i]);
+		_cprintf("===AXIS_R%d===\n",gMapAxisNO[i]);
 
 		//==MAX_torgue==//
 		//max_torque = dxl_read_word(gMapRAxisID[i], MAX_TORQUE);
@@ -223,19 +228,19 @@ int ROM_Setting_Dual()
 		//	printf("MAX_TORQUE=%d\n",max_torque);
 	
 		//==MIN_POS_LIMIT,MAX_POS_LIMIT==//
-		min_pos_lim =dxl_read_word(gMapRAxisID[i], MIN_POS_LIMIT);
+		min_pos_lim =dxl2_read_dword(gMapRAxisID[i], MIN_POS_LIMIT);
 		txrx_result = dxl_get_comm_result();
 		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed read MIN_POS_LIMIT error=%d\n",txrx_result);
+			_cprintf("Failed read MIN_POS_LIMIT error=%d\n",txrx_result);
 		else	
-			printf("MIN_POS_LIMIT=%d,degree=%f\n", min_pos_lim, min_pos_lim*DEF_RATIO_PUS_TO_DEG);
+			_cprintf("MIN_POS_LIMIT=%d,degree=%f\n", min_pos_lim, min_pos_lim*DEF_RATIO_PUS_TO_DEG);
 
-		max_pos_lim =dxl_read_word(gMapRAxisID[i], MAX_POS_LIMIT);
+		max_pos_lim = dxl2_read_dword(gMapRAxisID[i], MAX_POS_LIMIT);
 		txrx_result = dxl_get_comm_result();
 		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed Read MAX_POS_LIMIT failed error=%d\n",txrx_result);
+			_cprintf("Failed Read MAX_POS_LIMIT failed error=%d\n",txrx_result);
 		else	
-			printf("MAX_POS_LIMIT=%d,degree=%f\n", max_pos_lim, max_pos_lim*DEF_RATIO_PUS_TO_DEG);
+			_cprintf("MAX_POS_LIMIT=%d,degree=%f\n", max_pos_lim, max_pos_lim*DEF_RATIO_PUS_TO_DEG);
 		
 
 		//==multi turn offset==//
@@ -250,7 +255,7 @@ int ROM_Setting_Dual()
 	//==read and check left hand==//
 	for(i=Index_AXIS1;i<MAX_AXIS_NUM;i++)
 	{
-		printf("===AXIS_L%d===\n",gMapAxisNO[i]);
+		_cprintf("===AXIS_L%d===\n",gMapAxisNO[i]);
 
 		//==MAX_torgue==//
 		//max_torque = dxl_read_word(gMapLAxisID[i], MAX_TORQUE);
@@ -261,19 +266,19 @@ int ROM_Setting_Dual()
 		//	printf("MAX_TORQUE=%d\n",max_torque);
 	
 		//==MIN_POS_LIMIT,MAX_POS_LIMIT==//
-		min_pos_lim =dxl_read_word(gMapLAxisID[i], MIN_POS_LIMIT);
+		min_pos_lim = dxl2_read_dword(gMapLAxisID[i], MIN_POS_LIMIT);
 		txrx_result = dxl_get_comm_result();
 		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed read MIN_POS_LIMIT error=%d\n",txrx_result);
+			_cprintf("Failed read MIN_POS_LIMIT error=%d\n",txrx_result);
 		else	
-			printf("MIN_POS_LIMIT=%d,degree=%f\n", min_pos_lim, min_pos_lim*DEF_RATIO_PUS_TO_DEG);
+			_cprintf("MIN_POS_LIMIT=%d,degree=%f\n", min_pos_lim, min_pos_lim*DEF_RATIO_PUS_TO_DEG);
 
-		max_pos_lim =dxl_read_word(gMapLAxisID[i], MAX_POS_LIMIT);
+		max_pos_lim = dxl2_read_dword(gMapLAxisID[i], MAX_POS_LIMIT);
 		txrx_result = dxl_get_comm_result();
 		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed Read MAX_POS_LIMIT failed error=%d\n",txrx_result);
+			_cprintf("Failed Read MAX_POS_LIMIT failed error=%d\n",txrx_result);
 		else	
-			printf("MAX_POS_LIMIT=%d,degree=%f\n", max_pos_lim, max_pos_lim*DEF_RATIO_PUS_TO_DEG);
+			_cprintf("MAX_POS_LIMIT=%d,degree=%f\n", max_pos_lim, max_pos_lim*DEF_RATIO_PUS_TO_DEG);
 		
 
 		//==multi turn offset==//
@@ -357,86 +362,86 @@ void PID_Setting_Dual()
 	for(i=Index_AXIS1;i<MAX_AXIS_NUM;i++)
 	{
 		//==Set P==//
-		dxl_write_byte(gMapRAxisID[i],POS_P_GAIN,POS_P_GAIN_R[i]);//right
-		dxl_write_byte(gMapLAxisID[i],POS_P_GAIN,POS_P_GAIN_L[i]);//left
+		dxl2_write_word(gMapRAxisID[i],POS_P_GAIN,POS_P_GAIN_R[i]);//right
+		dxl2_write_word(gMapLAxisID[i],POS_P_GAIN,POS_P_GAIN_L[i]);//left
 	
 		//==Set I==//
-		dxl_write_byte(gMapRAxisID[i],POS_I_GAIN,POS_I_GAIN_R[i]);//right
-		dxl_write_byte(gMapLAxisID[i],POS_I_GAIN,POS_I_GAIN_L[i]);//left  
+		dxl2_write_word(gMapRAxisID[i],POS_I_GAIN,POS_I_GAIN_R[i]);//right
+		dxl2_write_word(gMapLAxisID[i],POS_I_GAIN,POS_I_GAIN_L[i]);//left  
 
 		//==Set D==//
-		dxl_write_byte(gMapRAxisID[i], POS_D_GAIN,POS_D_GAIN_R[i]);//right
-		dxl_write_byte(gMapLAxisID[i], POS_D_GAIN, POS_D_GAIN_L[i]);//left
+		dxl2_write_word(gMapRAxisID[i], POS_D_GAIN,POS_D_GAIN_R[i]);//right
+		dxl2_write_word(gMapLAxisID[i], POS_D_GAIN, POS_D_GAIN_L[i]);//left
 	}
 
 
 	//==read and check right hand==//
 	int	txrx_result=0;
-	short int pos_p_gain=0;
-	short int pos_i_gain=0, pos_d_gain=0;
-	short int multi_turn_offset=0;
+	unsigned short pos_p_gain=0;
+	unsigned short pos_i_gain=0, pos_d_gain=0;
+	unsigned short multi_turn_offset=0;
 	for(i=Index_AXIS1;i<MAX_AXIS_NUM;i++)
 	{
-		printf("===AXIS_R%d===\n",gMapAxisNO[i]);
+		_cprintf("===AXIS_R%d===\n",gMapAxisNO[i]);
 
 		//==P GAIN==//
-		pos_p_gain = dxl_read_byte(gMapRAxisID[i],POS_P_GAIN);
+		pos_p_gain = dxl2_read_word(gMapRAxisID[i],POS_P_GAIN);
 		txrx_result = dxl_get_comm_result();
 		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed read POS_P_GAIN error=%d\n",txrx_result);
+			_cprintf("Failed read POS_P_GAIN error=%d\n",txrx_result);
 		else
-			printf("POS_P_GAIN=%d\n", pos_p_gain);
+			_cprintf("POS_P_GAIN=%d\n", pos_p_gain);
 	
 		//==I GAIN==//
-		pos_i_gain =dxl_read_byte(gMapRAxisID[i],POS_I_GAIN);
+		pos_i_gain =dxl2_read_word(gMapRAxisID[i],POS_I_GAIN);
 		txrx_result = dxl_get_comm_result();
 		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed read POS_I_GAIN error=%d\n",txrx_result);
+			_cprintf("Failed read POS_I_GAIN error=%d\n",txrx_result);
 		else	
-			printf("POS_I_GAIN=%d\n", pos_i_gain);
+			_cprintf("POS_I_GAIN=%d\n", pos_i_gain);
 
 		//==D GAIN==//
-		pos_d_gain=dxl_read_byte(gMapRAxisID[i],POS_D_GAIN);
+		pos_d_gain=dxl2_read_word(gMapRAxisID[i],POS_D_GAIN);
 		txrx_result = dxl_get_comm_result();
 		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed Read POS_D_GAIN error=%d\n",txrx_result);
+			_cprintf("Failed Read POS_D_GAIN error=%d\n",txrx_result);
 		else	
-			printf("POS_D_GAIN=%d\n",pos_d_gain);
+			_cprintf("POS_D_GAIN=%d\n",pos_d_gain);
 	}	
 	//==read and check left hand==//
 	for(i=Index_AXIS1;i<MAX_AXIS_NUM;i++)
 	{
-		printf("===AXIS_L%d===\n",gMapAxisNO[i]);
+		_cprintf("===AXIS_L%d===\n",gMapAxisNO[i]);
 
 		//==P GAIN==//
-		pos_p_gain = dxl_read_byte(gMapLAxisID[i], POS_P_GAIN);
+		pos_p_gain = dxl2_read_word(gMapLAxisID[i], POS_P_GAIN);
 		txrx_result = dxl_get_comm_result();
 		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed read POS_P_GAIN error=%d\n",txrx_result);
+			_cprintf("Failed read POS_P_GAIN error=%d\n",txrx_result);
 		else
-			printf("POS_P_GAIN=%d\n",pos_p_gain);
+			_cprintf("POS_P_GAIN=%d\n",pos_p_gain);
 	
 		//==I GAIN==//
-		pos_i_gain =dxl_read_byte(gMapLAxisID[i], POS_I_GAIN);
+		pos_i_gain =dxl2_read_word(gMapLAxisID[i], POS_I_GAIN);
 		txrx_result = dxl_get_comm_result();
 		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed read POS_I_GAIN error=%d\n",txrx_result);
+			_cprintf("Failed read POS_I_GAIN error=%d\n",txrx_result);
 		else	
-			printf("POS_I_GAIN=%d\n", pos_i_gain);
+			_cprintf("POS_I_GAIN=%d\n", pos_i_gain);
 
 		//==D GAIN==//
-		pos_d_gain=dxl_read_byte(gMapLAxisID[i], POS_D_GAIN);
+		pos_d_gain=dxl2_read_word(gMapLAxisID[i], POS_D_GAIN);
 		txrx_result = dxl_get_comm_result();
 		if(txrx_result!=COMM_RXSUCCESS)
-			printf("Failed Read POS_D_GAIN error=%d\n",txrx_result);
+			_cprintf("Failed Read POS_D_GAIN error=%d\n",txrx_result);
 		else	
-			printf("POS_D_GAIN=%d\n",pos_d_gain);
+			_cprintf("POS_D_GAIN=%d\n",pos_d_gain);
 	}	
 
 }
 
 //rt=Read_pos(pos_pus,DEF_UNIT_PUS)
-int Read_pos(int RLHand,float *pos,unsigned char unit)
+int Read_pos(int RLHand, double *pos,unsigned char unit)
 {
 	int i=0;
 	short int pulse=0;
@@ -456,9 +461,9 @@ int Read_pos(int RLHand,float *pos,unsigned char unit)
 		for (int i = Index_AXIS1; i < MAX_AXIS_NUM; i++)
 			dxl2_set_txpacket_parameter(idx++, gMapRAxisID[i]);
 	}
-	else if(RLHand == DEF_RIGHT_HAND)
+	else if(RLHand == DEF_LEFT_HAND)
 	{
-		for (int i = Index_AXIS1; i < MAX_AXIS_NUM; i++)
+		for (int i = Index_AXIS1; i < MAX_AXIS_NUM; i++) //org
 			dxl2_set_txpacket_parameter(idx++, gMapLAxisID[i]);
 	}
 
@@ -469,7 +474,7 @@ int Read_pos(int RLHand,float *pos,unsigned char unit)
 		return -1;
 	else
 	{
-		short int pulse = 0;
+		unsigned long pulse = 0;
 
 		for (int i = Index_AXIS1; i < MAX_AXIS_NUM; i++)
 		{
@@ -501,6 +506,85 @@ int Read_pos(int RLHand,float *pos,unsigned char unit)
 		}
 	}
 	return rt;
+}
+
+void TestRead_pos()
+{
+
+	//==record para==//
+	double pos_deg_R[MAX_AXIS_NUM] = { 0 };
+	double pos_deg_L[MAX_AXIS_NUM] = { 0 };
+	double pos_deg_last_ok_R[MAX_AXIS_NUM] = { 0 };
+	double pos_deg_last_ok_L[MAX_AXIS_NUM] = { 0 };
+	int n = 0;
+	int rt = 0;
+	char buffer[100];
+
+	gfileR.open("D://GetDrinkJointAngle_R.csv", ios::out | ios::trunc);
+	gfileL.open("D://GetDrinkJointAngle_L.csv", ios::out | ios::trunc);
+
+	while (true)
+	{
+		////==Read right hand
+		rt = Read_pos(DEF_RIGHT_HAND, pos_deg_R, DEF_UNIT_DEG);
+
+		if (rt == 0)
+		{
+			for(int i=Index_AXIS1;i<=Index_AXIS7;i++)
+			{
+				printf("f%d:%3.0f, ",gMapAxisNO[i],pos_deg_R[i]);
+			}
+			printf("\n");
+
+
+			n = sprintf_s(buffer, sizeof(buffer), "%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst, pos_deg_R[Index_AXIS1], pos_deg_R[Index_AXIS2], pos_deg_R[Index_AXIS3], pos_deg_R[Index_AXIS4], pos_deg_R[Index_AXIS5], pos_deg_R[Index_AXIS6], pos_deg_R[Index_AXIS7]);
+			gfileR.write(buffer, n);
+
+			memcpy(pos_deg_last_ok_R, pos_deg_R, sizeof(pos_deg_last_ok_R));
+		}
+		else //Åª¨ú¥¢±Ñ®É¡A®³«e¤@µ§¨Ó¸É
+		{
+			//for(int i=Index_AXIS1;i<=Index_AXIS7;i++)
+			//{
+			//	printf("f%d:%3.0f, ",gMapAxisNO[i],pos_deg_last_ok_R[i]);
+			//}
+			printf("\n");
+			
+			n = sprintf_s(buffer, sizeof(buffer),"%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst, pos_deg_last_ok_R[Index_AXIS1], pos_deg_last_ok_R[Index_AXIS2], pos_deg_last_ok_R[Index_AXIS3], pos_deg_last_ok_R[Index_AXIS4], pos_deg_last_ok_R[Index_AXIS5], pos_deg_last_ok_R[Index_AXIS6], pos_deg_last_ok_R[Index_AXIS7]);
+			gfileR.write(buffer, n);
+		}
+
+		//==Read left hand
+		rt = Read_pos(DEF_LEFT_HAND, pos_deg_L, DEF_UNIT_DEG);
+
+		if (rt == 0)
+		{
+			for(int i=Index_AXIS1;i<=Index_AXIS7;i++)
+			{
+				_cprintf("f%d:%3.0f, ",gMapAxisNO[i],pos_deg_L[i]);
+			}
+			_cprintf("\n");
+
+			n = sprintf_s(buffer, sizeof(buffer), "%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst, pos_deg_L[Index_AXIS1], pos_deg_L[Index_AXIS2], pos_deg_L[Index_AXIS3], pos_deg_L[Index_AXIS4], pos_deg_L[Index_AXIS5], pos_deg_L[Index_AXIS6], pos_deg_L[Index_AXIS7]);
+			gfileL.write(buffer, n);
+
+			memcpy(pos_deg_last_ok_L, pos_deg_L, sizeof(pos_deg_last_ok_L));
+		}
+		else //Åª¨ú¥¢±Ñ®É¡A®³«e¤@µ§¨Ó¸É
+		{
+			//for(int i=Index_AXIS1;i<=Index_AXIS7;i++)
+			//{
+			//	printf("f%d:%3.0f, ",gMapAxisNO[i],pos_deg_last_ok_L[i]);
+			//}
+			printf("\n");
+
+			n = sprintf_s(buffer, sizeof(buffer), "%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst, pos_deg_last_ok_L[Index_AXIS1], pos_deg_last_ok_L[Index_AXIS2], pos_deg_last_ok_L[Index_AXIS3], pos_deg_last_ok_L[Index_AXIS4], pos_deg_last_ok_L[Index_AXIS5], pos_deg_last_ok_L[Index_AXIS6], pos_deg_last_ok_L[Index_AXIS7]);
+			gfileL.write(buffer, n);
+		}
+
+		//Sleep(10);
+	}
+
 }
 int ReadPresentLoad(int RLHand,float *LoadPercent)
 {
@@ -657,9 +741,7 @@ CStaArray gNeedle_ini_Plate(30,-30,0,0,0,0,0);//¤U°wÂI¦b¬[¤lplate®y¼Ð¨t¤Wªºªì©lÂ
 CStaArray gTranFrameToRobot=gNeedle_RobotF-gNeedle_ini_Plate;//§Q¥Î¨â­Óªº®t­È¥h°µ¤ñ¸û
 
 
-fstream gfileR;
-fstream gfileL;
-static float gstatic_abst=0;
+
 
 void IKOutputToArm(CStaArray &PathPlanPoint_R,CStaArray &PathPlanPoint_L)
 {
@@ -693,13 +775,13 @@ void IKOutputToArm(CStaArray &PathPlanPoint_R,CStaArray &PathPlanPoint_L)
 
 #ifdef RECORD_JOINT_ANGLE
 		//==record para==//
-		float pos_deg_R[MAX_AXIS_NUM]={0};
-		float pos_deg_L[MAX_AXIS_NUM]={0};
-		float pos_deg_last_ok_R[MAX_AXIS_NUM]={0};
-		float pos_deg_last_ok_L[MAX_AXIS_NUM]={0};
+		double pos_deg_R[MAX_AXIS_NUM]={0};
+		double pos_deg_L[MAX_AXIS_NUM]={0};
+		double pos_deg_last_ok_R[MAX_AXIS_NUM]={0};
+		double pos_deg_last_ok_L[MAX_AXIS_NUM]={0};
 		int n=0;
 		int rt=0;
-
+		char buffer[100];
 		////==Read right hand
 		rt=Read_pos(DEF_RIGHT_HAND,pos_deg_R,DEF_UNIT_DEG);
 
@@ -712,7 +794,7 @@ void IKOutputToArm(CStaArray &PathPlanPoint_R,CStaArray &PathPlanPoint_L)
 			printf("\n");
 
 			
-			n=sprintf_s(buffer,sizeof(buffer),"%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n",abst,pos_deg_R[Index_AXIS1],pos_deg_R[Index_AXIS2],pos_deg_R[Index_AXIS3],pos_deg_R[Index_AXIS4],pos_deg_R[Index_AXIS5],pos_deg_R[Index_AXIS6],pos_deg_R[Index_AXIS7]);
+			n=sprintf_s(buffer,sizeof(buffer),"%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst,pos_deg_R[Index_AXIS1],pos_deg_R[Index_AXIS2],pos_deg_R[Index_AXIS3],pos_deg_R[Index_AXIS4],pos_deg_R[Index_AXIS5],pos_deg_R[Index_AXIS6],pos_deg_R[Index_AXIS7]);
 			gfileR.write(buffer,n);
 			
 			memcpy(pos_deg_last_ok_R,pos_deg_R,sizeof(pos_deg_last_ok_R));
@@ -725,7 +807,7 @@ void IKOutputToArm(CStaArray &PathPlanPoint_R,CStaArray &PathPlanPoint_L)
 			//}
 			printf("\n");
 
-			n=sprintf_s(buffer,sizeof(buffer),"%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n",abst,pos_deg_last_ok_R[Index_AXIS1],pos_deg_last_ok_R[Index_AXIS2],pos_deg_last_ok_R[Index_AXIS3],pos_deg_last_ok_R[Index_AXIS4],pos_deg_last_ok_R[Index_AXIS5],pos_deg_last_ok_R[Index_AXIS6],pos_deg_last_ok_R[Index_AXIS7]);
+			n=sprintf_s(buffer,sizeof(buffer),"%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst,pos_deg_last_ok_R[Index_AXIS1],pos_deg_last_ok_R[Index_AXIS2],pos_deg_last_ok_R[Index_AXIS3],pos_deg_last_ok_R[Index_AXIS4],pos_deg_last_ok_R[Index_AXIS5],pos_deg_last_ok_R[Index_AXIS6],pos_deg_last_ok_R[Index_AXIS7]);
 			gfileR.write(buffer,n);
 		}
 
@@ -740,7 +822,7 @@ void IKOutputToArm(CStaArray &PathPlanPoint_R,CStaArray &PathPlanPoint_L)
 			//}
 			printf("\n");
 
-			n=sprintf_s(buffer,sizeof(buffer),"%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n",abst,pos_deg_L[Index_AXIS1],pos_deg_L[Index_AXIS2],pos_deg_L[Index_AXIS3],pos_deg_L[Index_AXIS4],pos_deg_L[Index_AXIS5],pos_deg_L[Index_AXIS6],pos_deg_L[Index_AXIS7]);
+			n=sprintf_s(buffer,sizeof(buffer),"%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst,pos_deg_L[Index_AXIS1],pos_deg_L[Index_AXIS2],pos_deg_L[Index_AXIS3],pos_deg_L[Index_AXIS4],pos_deg_L[Index_AXIS5],pos_deg_L[Index_AXIS6],pos_deg_L[Index_AXIS7]);
 			gfileL.write(buffer,n);
 			
 			memcpy(pos_deg_last_ok_L,pos_deg_L,sizeof(pos_deg_last_ok_L));
@@ -753,7 +835,7 @@ void IKOutputToArm(CStaArray &PathPlanPoint_R,CStaArray &PathPlanPoint_L)
 			//}
 			printf("\n");
 
-			n=sprintf_s(buffer,sizeof(buffer),"%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n",abst,pos_deg_last_ok_L[Index_AXIS1],pos_deg_last_ok_L[Index_AXIS2],pos_deg_last_ok_L[Index_AXIS3],pos_deg_last_ok_L[Index_AXIS4],pos_deg_last_ok_L[Index_AXIS5],pos_deg_last_ok_L[Index_AXIS6],pos_deg_last_ok_L[Index_AXIS7]);
+			n=sprintf_s(buffer,sizeof(buffer),"%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst,pos_deg_last_ok_L[Index_AXIS1],pos_deg_last_ok_L[Index_AXIS2],pos_deg_last_ok_L[Index_AXIS3],pos_deg_last_ok_L[Index_AXIS4],pos_deg_last_ok_L[Index_AXIS5],pos_deg_last_ok_L[Index_AXIS6],pos_deg_last_ok_L[Index_AXIS7]);
 			gfileL.write(buffer,n);
 		}
 #endif
@@ -2882,7 +2964,7 @@ int DXL_Initial()
 	//const int default_portnum=6;//latte_panda
 	const int default_portnum=5;//my pc
 	//const int default_portnum=5;//vaio plate
-	const int default_baudnum=1;
+	const int default_baudnum=1000000;
 
 	printf("DXL_port=%d\n",default_portnum);
 	rt=dxl_initialize( default_portnum,default_baudnum);

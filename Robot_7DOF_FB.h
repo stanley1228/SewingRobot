@@ -493,10 +493,12 @@ public:
 //Function
 //==========
 unsigned char getMapAxisNO(unsigned char index); //index 0~ (MAX_AXIS_NUM-1)
-unsigned char getMapAxisID(unsigned char index);
+unsigned char getMapRAxisID(unsigned char index);
+unsigned char getMapLAxisID(unsigned char index);
 int ROM_Setting_Dual();
 void PID_Setting_Dual();
 int Read_pos(int RLHand,unsigned long *pos,unsigned char unit);
+void TestRead_pos();
 int ReadPresentLoad(int RLHand,float *LoadPercent);
 void WaitMotionDoneDual();
 void TestSewingAction();
