@@ -138,11 +138,11 @@ void CSewingRobotDlg::OnBnClickedBtnIniDxl()
 
 void CSewingRobotDlg::OnBnClickedBtnSewprocess()
 {
-
-	//PID_Setting_Dual();
-	//SetAllAccTo(20); //20 deg/acc^
-	//TestSewingAction();
-	ROM_Setting_Dual();
+	Torque_Switch(1);
+	PID_Setting_Dual();
+	SetAllAccTo(50); //50 deg/acc^
+	TestSewingAction();
+	//ROM_Setting_Dual();
 
 	//TestRead_pos();
 
@@ -250,7 +250,7 @@ void CSewingRobotDlg::OnBnClickedBtnMovetohome()
 void CSewingRobotDlg::OnBnClickedBtnTorqueDisable()
 {
 	// TODO: 在此加入控制項告知處理常式程式碼
-	Torque_Disable();
+	Torque_Switch(0);
 }
 
 
@@ -259,5 +259,5 @@ void CSewingRobotDlg::OnBnClickedBtnMovetoInit()
 	// TODO: 在此加入控制項告知處理常式程式碼
 	CStaArray R_IniP(-90, -90, 0, 50, 0, 0, -50);
 	CStaArray L_IniP(-90, 90, 0, -90, 0, 0, 90);
-	MoveToInitailPoint(R_IniP, L_IniP);
+	MoveToInitailPoint(DEF_OBJFRAME_COOR,R_IniP, L_IniP);
 }

@@ -183,12 +183,21 @@ static const unsigned char gMapAllAxisID[MAX_AXIS_NUM*2] =
 #define DEF_RATIO_DEG_TO_RAD (DEF_PI/180)		//pi/180	0.01745329251994329576923690768489 (0.0175F)
 #define DEF_RATIO_RAD_TO_DEG (180/DEF_PI)	//57.29578
 #define DEF_RATIO_RAD_TO_PUS (651.8986F)	//4096/2pi	651.89864690440329530934789477382
-#define DEF_RATIO_VEL_PUS_TO_DEG (0.684F)  //moving speed in register(0~1024) to deg/s 0.114rpm*360/60=0.684deg/s
-#define DEF_RATIO_VEL_DEG_TO_PUS (1.462F)  
-#define DEF_RATIO_VEL_RAD_TO_PUS (83.7664F)  //DEF_RATIO_RAD_TO_DEG x DEF_RATIO_VEL_DEG_TO_PUS =57.29578 x  1.462 =83.7664
-#define DEF_RATIO_ACC_PUS_TO_DEG (8.583) //8.583 deg/s^2 / pus
-#define DEF_RATIO_ACC_DEG_TO_PUS (0.1165) //0.1165 pus /deg/s^2   range 8.583 deg/s^2 ~ 2180 deg/s^2
+//#define DEF_RATIO_VEL_PUS_TO_DEG (0.684F)  //moving speed in register(0~1024) to deg/s 0.114rpm*360/60=0.684deg/s
+#define DEF_RATIO_VEL_PUS_TO_DEG_DXL2 (1.374F)  //moving speed in register(0~1024) to deg/s 0.229rpm*360/60=1.374deg/s
 
+
+//#define DEF_RATIO_VEL_DEG_TO_PUS (1.462F)  
+#define DEF_RATIO_VEL_DEG_TO_PUS_DXL2 (0.7278F)  
+
+//#define DEF_RATIO_VEL_RAD_TO_PUS (83.7664F)  //DEF_RATIO_RAD_TO_DEG x DEF_RATIO_VEL_DEG_TO_PUS =57.29578 x  1.462 =83.7664
+#define DEF_RATIO_VEL_RAD_TO_PUS_DXL2 (41.6999F)  //DEF_RATIO_RAD_TO_DEG x DEF_RATIO_VEL_DEG_TO_PUS_DXL2 =57.29578 x  0.7278 =41.6999
+
+//#define DEF_RATIO_ACC_PUS_TO_DEG (8.583) //8.583 deg/s^2 / pus
+#define DEF_RATIO_ACC_PUS_TO_DEG_DXL2 (21.4577) // 214.577 rev/min^2 / pus =>214.577x360/(60*60)=21.4577 deg/s^2 / pus
+
+//#define DEF_RATIO_ACC_DEG_TO_PUS (0.1165) //0.1165 pus /deg/s^2       range 8.583 deg/s^2 ~ 2180 deg/s^2
+#define DEF_RATIO_ACC_DEG_TO_PUS_DXL2 (0.0466)//0.0466 pus /deg/s^2   
 
 //for read pos unit select
 enum{
@@ -281,7 +290,7 @@ enum{
 #define AXISL1_POS_P_GAIN	40		
 #define AXISL2_POS_P_GAIN	32
 #define AXISL3_POS_P_GAIN	32
-#define AXISL4_POS_P_GAIN	32
+#define AXISL4_POS_P_GAIN	800
 #define AXISL5_POS_P_GAIN	32
 #define AXISL6_POS_P_GAIN	32
 #define AXISL7_POS_P_GAIN	32
@@ -298,7 +307,7 @@ enum{
 #define AXISL1_POS_I_GAIN	20	
 #define AXISL2_POS_I_GAIN	15
 #define AXISL3_POS_I_GAIN	15
-#define AXISL4_POS_I_GAIN	15
+#define AXISL4_POS_I_GAIN	0
 #define AXISL5_POS_I_GAIN	15
 #define AXISL6_POS_I_GAIN	15
 #define AXISL7_POS_I_GAIN	15
@@ -315,7 +324,7 @@ enum{
 #define AXISL1_POS_D_GAIN	10		
 #define AXISL2_POS_D_GAIN	10
 #define AXISL3_POS_D_GAIN	10
-#define AXISL4_POS_D_GAIN	10
+#define AXISL4_POS_D_GAIN	0
 #define AXISL5_POS_D_GAIN	10
 #define AXISL6_POS_D_GAIN	10
 #define AXISL7_POS_D_GAIN	10
@@ -467,6 +476,13 @@ static const float grobot_lim_pus_L_High[MAX_AXIS_NUM]=
 #define DEF_NORM_VERY_SMALL (1.e-3)//norm很小的量判斷為0使用
 #define DEF_COSVAL_VERY_SMALL (1.e-7)//cos值很小的量判斷為0使用
 
+//=========================
+//====Line move parameter==
+//=========================
+#define DEF_ROBOT_COOR 1//coordinate of robot 
+#define DEF_OBJFRAME_COOR 2//coordinate of object frame
+
+
 //=====================================
 //自己建立的陣列class，為了要陣列相加減
 //=====================================
@@ -497,19 +513,22 @@ unsigned char getMapRAxisID(unsigned char index);
 unsigned char getMapLAxisID(unsigned char index);
 int ROM_Setting_Dual();
 void PID_Setting_Dual();
-int Read_pos(int RLHand,unsigned long *pos,unsigned char unit);
+int Read_pos(int RLHand,double *pos,unsigned char unit);
+int Read_moving(int RLHand, unsigned char *mov);
+int Read_vel(int RLHand, double *vel);
 void TestRead_pos();
-int ReadPresentLoad(int RLHand,float *LoadPercent);
+
+int ReadPresentLoad(int RLHand,double *LoadPercent);
 void WaitMotionDoneDual();
 void TestSewingAction();
-void MoveToInitailPoint(CStaArray &R_starP,CStaArray &L_starP);
+void PickSewingObject();
+void MoveToInitailPoint(int Coordinate,CStaArray &R_starP,CStaArray &L_starP);
 int TestMoveToSewingHome_Dual();
-int Torque_Disable();
+int Torque_Switch(int sw);
 int SetAllAccTo(float deg_s2);
-void LineMoveTo(CStaArray &L_starP,CStaArray &L_endP,CStaArray &R_starP,CStaArray &R_endP,float CostTime);
-void RotateMoveTo(CStaArray &L_starP,CStaArray &L_endP,CStaArray &R_starP,CStaArray &R_endP,CStaArray &arc_cen,float rot_rad,float CostTime);
+void LineMoveTo(int Coordinate,CStaArray &L_starP,CStaArray &L_endP,CStaArray &R_starP,CStaArray &R_endP,float CostTime);
+void RotateMoveTo(int Coordinate, CStaArray &L_starP,CStaArray &L_endP,CStaArray &R_starP,CStaArray &R_endP,CStaArray &arc_cen,float rot_rad,float CostTime);
 void IKOutputToArm(CStaArray &PathPlanPoint_R,CStaArray &PathPlanPoint_L);
-
 
 int Output_to_Dynamixel(int RLHand,const float *Ang_rad,const unsigned short int *velocity) ;
 int Output_to_Dynamixel_Dual(const float *Ang_rad_R,const unsigned short int *velocity_R,const float *Ang_rad_L,const unsigned short int *velocity_L);
