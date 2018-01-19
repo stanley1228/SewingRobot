@@ -490,16 +490,16 @@ class CStaArray
 {
 public:
 	int m_ARR_SIZE;
-	float m_arr[7];
+	double m_arr[7];
 	
 	CStaArray();
-	CStaArray(float x,float y,float z,float alpha,float beta,float gamma,float rednt_alpha);
+	CStaArray(double x, double y, double z, double alpha, double beta, double gamma, double rednt_alpha);
 
-	float at(int index);
-	void SetArray(float x,float y,float z,float alpha,float beta,float gamma,float rednt_alpha);
+	double at(int index);
+	void SetArray(double x,double y,double z,double alpha,double beta,double gamma,double rednt_alpha);
 
-	CStaArray operator*(float k);
-	CStaArray operator/(float k);
+	CStaArray operator*(double k);
+	CStaArray operator/(double k);
 	CStaArray operator+(CStaArray &other);
 	CStaArray operator-(CStaArray &other);
 };
@@ -525,25 +525,25 @@ void PickSewingObject();
 void MoveToInitailPoint(int Coordinate,CStaArray &R_starP,CStaArray &L_starP);
 int TestMoveToSewingHome_Dual();
 int Torque_Switch(int sw);
-int SetAllAccTo(float deg_s2);
-void LineMoveTo(int Coordinate,CStaArray &L_starP,CStaArray &L_endP,CStaArray &R_starP,CStaArray &R_endP,float CostTime);
-void RotateMoveTo(int Coordinate, CStaArray &L_starP,CStaArray &L_endP,CStaArray &R_starP,CStaArray &R_endP,CStaArray &arc_cen,float rot_rad,float CostTime);
+int SetAllAccTo(double deg_s2);
+void LineMoveTo(int Coordinate,CStaArray &L_starP,CStaArray &L_endP,CStaArray &R_starP,CStaArray &R_endP,double CostTime);
+void RotateMoveTo(int Coordinate, CStaArray &L_starP,CStaArray &L_endP,CStaArray &R_starP,CStaArray &R_endP,CStaArray &arc_cen,double rot_rad, double CostTime);
 void IKOutputToArm(CStaArray &PathPlanPoint_R,CStaArray &PathPlanPoint_L);
 
-int Output_to_Dynamixel(int RLHand,const float *Ang_rad,const unsigned short int *velocity) ;
-int Output_to_Dynamixel_Dual(const float *Ang_rad_R,const unsigned short int *velocity_R,const float *Ang_rad_L,const unsigned short int *velocity_L);
+int Output_to_Dynamixel(int RLHand,const double *Ang_rad,const unsigned short int *velocity) ;
+int Output_to_Dynamixel_Dual(const double *Ang_rad_R,const unsigned short int *velocity_R,const double *Ang_rad_L,const unsigned short int *velocity_L);
 int Output_to_Dynamixel_pulse(const unsigned short int *Ang_pulse,const unsigned short int *velocity);
 
-//Matrix R_z1x2y3(float alpha,float beta,float gamma);
-cv::Mat R_z1x2y3(float alpha,float beta,float gamma);		
+//Matrix R_z1x2y3(double alpha,double beta,double gamma);
+cv::Mat R_z1x2y3(double alpha,double beta,double gamma);		
 //float norm(const Matrix& v);
 //Matrix Rogridues(float theta,const Matrix& V_A);
-cv::Mat Rogridues(float theta, cv::Mat V_A);
+cv::Mat Rogridues(double theta, cv::Mat V_A);
 //int IK_7DOF_nonFB(const float l1,const float l2,const float l3,const float x_base,const float y_base,const float z_base,const float x_end,const float y_end,const float z_end,const float alpha,const float beta,const float gamma,const float Rednt_alpha,float* theta);
-int IK_7DOF_FB7roll(int RLHand,const float linkL[6],const float base[3],const float Pend[3],const float PoseAngle[3],const float Rednt_alpha,float* out_theta);
-bool AngleOverConstrain(int RLHand,const float theta[MAX_AXIS_NUM],int *OverIndex);
-int MoveToPoint(int RLHand,float Point[7],float vel_deg); //Point[x,y,z,alpha,beta,gamma,redant_alpha]
-int MoveToPoint_Dual(float Point_R[7],float Point_L[7]);  //莱赣璶Τ硉把计
+int IK_7DOF_FB7roll(int RLHand,const double linkL[6],const double base[3],const double Pend[3],const double PoseAngle[3],const double Rednt_alpha, double* out_theta);
+bool AngleOverConstrain(int RLHand,const double theta[MAX_AXIS_NUM],int *OverIndex);
+int MoveToPoint(int RLHand,double Point[7], double vel_deg); //Point[x,y,z,alpha,beta,gamma,redant_alpha]
+int MoveToPoint_Dual(double Point_R[7], double Point_L[7]);  //莱赣璶Τ硉把计
 int IsMoving(int RLHand,bool *stillmoving);
 void QPDelay_ms(int t_ms);
 
@@ -614,8 +614,8 @@ public:
 	static const byte DEF_CMD_FL = 0xa3;
 	static const byte DEF_CMD_SPINDLE = 0xa4;
 	static const byte DEF_CMD_TRIMMER = 0xa5;
-
-	cF446RE(int com, int baudrate);
+	
+	cF446RE();
 	bool initial(int com, int baudrate);
 	void close();
 	HANDLE RSLINK(unsigned long Port, unsigned long BRate);

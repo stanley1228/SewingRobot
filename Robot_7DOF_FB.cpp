@@ -34,15 +34,15 @@
 //#define GRIPPER_ON_LATTE
 #define MOVETOPOINT_DUAL
 #define CHECK_JOINT_PATH  
-#define CHECK_JOINT_VEL_CMD
+//#define CHECK_JOINT_VEL_CMD
 //#define MOVE_TO_INITIAL_POINT
-#define RECORD_JOINT_ANGLE
-#define RECORD_JOINT_VEL
-#define RECORD_JOINT_LOAD
-#define RECORD_JOINT_MOVING
+//#define RECORD_JOINT_ANGLE
+//#define RECORD_JOINT_VEL
+//#define RECORD_JOINT_LOAD
+//#define RECORD_JOINT_MOVING
 //#define DEF_WAIT_ENTER
 
-const double gCycleT=0.04;
+const double gCycleT=0.5;
 
 std::fstream gfileR;
 std::fstream gfileL;
@@ -58,6 +58,7 @@ std::fstream gfileJointVelCmd_R;
 std::fstream gfileJointVelCmd_L;
 
 static double gstatic_abst = 0;
+cF446RE* gpF446RE = NULL;
 
 using namespace cv;
 using namespace std;
@@ -561,7 +562,7 @@ int Read_moving(int RLHand, unsigned char *mov)
 			}
 			else if (RLHand == DEF_LEFT_HAND)
 			{
-				mov[i] = dxl2_get_sync_read_data_dword(gMapLAxisID[i], STILL_MOVING);		
+				mov[i] = dxl2_get_sync_read_data_byte(gMapLAxisID[i], STILL_MOVING);
 			}
 		}
 	}
@@ -794,18 +795,18 @@ CStaArray::CStaArray()
 	m_ARR_SIZE=7;
 	SetArray( 0, 0, 0, 0, 0, 0, 0);
 }
-CStaArray::CStaArray(float x,float y,float z,float alpha,float beta,float gamma,float rednt_alpha)
+CStaArray::CStaArray(double x,double y,double z,double alpha,double beta,double gamma,double rednt_alpha)
 {
 	m_ARR_SIZE=7;
 	SetArray( x, y, z, alpha, beta, gamma, rednt_alpha);
 }
 
-float CStaArray::at(int index)
+double CStaArray::at(int index)
 {
 	return m_arr[index];
 }
 
-void CStaArray::SetArray(float x,float y,float z,float alpha,float beta,float gamma,float rednt_alpha)
+void CStaArray::SetArray(double x,double y,double z,double alpha,double beta,double gamma,double rednt_alpha)
 {
 	m_arr[DEF_X]=x;
 	m_arr[DEF_Y]=y;;
@@ -817,7 +818,7 @@ void CStaArray::SetArray(float x,float y,float z,float alpha,float beta,float ga
 }
 
 
-CStaArray CStaArray::operator*(float k)
+CStaArray CStaArray::operator*(double k)
 {
 	CStaArray temp;
     for (int i=0;i<m_ARR_SIZE;i++)
@@ -827,7 +828,7 @@ CStaArray CStaArray::operator*(float k)
 }
 
 
-CStaArray CStaArray::operator/(float k)
+CStaArray CStaArray::operator/(double k)
 {
 	CStaArray temp;
     for (int i=0;i<m_ARR_SIZE;i++)
@@ -880,12 +881,10 @@ void IKOutputToArm(CStaArray &PathPlanPoint_R,CStaArray &PathPlanPoint_L)
 	if(cnt%10==0)
 		MoveToPoint_Dual(PathPlanPoint_R.m_arr,PathPlanPoint_L.m_arr);  //使用原本matrix大約20ms    改為opencv matri後平均2.5ms 因此cycle time想抓10ms  
 #endif
-	if (cnt % 10 == 0)
-	{
-		_cprintf("Pend_R=[%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f],Pend_L=[%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f]\n", PathPlanPoint_R.at(DEF_X), PathPlanPoint_R.at(DEF_Y), PathPlanPoint_R.at(DEF_Z), PathPlanPoint_R.at(DEF_ALPHA), PathPlanPoint_R.at(DEF_BETA), PathPlanPoint_R.at(DEF_GAMMA), PathPlanPoint_R.at(DEF_REDNT_ALPHA), PathPlanPoint_L.at(DEF_X), PathPlanPoint_L.at(DEF_Y), PathPlanPoint_L.at(DEF_Z), PathPlanPoint_L.at(DEF_ALPHA), PathPlanPoint_L.at(DEF_BETA), PathPlanPoint_L.at(DEF_GAMMA), PathPlanPoint_L.at(DEF_REDNT_ALPHA));
-		cnt = 0;
-	}
-	cnt++;
+	
+	_cprintf("Pend_R=[%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f],Pend_L=[%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f]\n", PathPlanPoint_R.at(DEF_X), PathPlanPoint_R.at(DEF_Y), PathPlanPoint_R.at(DEF_Z), PathPlanPoint_R.at(DEF_ALPHA), PathPlanPoint_R.at(DEF_BETA), PathPlanPoint_R.at(DEF_GAMMA), PathPlanPoint_R.at(DEF_REDNT_ALPHA), PathPlanPoint_L.at(DEF_X), PathPlanPoint_L.at(DEF_Y), PathPlanPoint_L.at(DEF_Z), PathPlanPoint_L.at(DEF_ALPHA), PathPlanPoint_L.at(DEF_BETA), PathPlanPoint_L.at(DEF_GAMMA), PathPlanPoint_L.at(DEF_REDNT_ALPHA));
+		
+	
 
 		//==確認軌跡點==//
 #ifdef CHECK_CARTESIAN_PATH
@@ -1050,7 +1049,7 @@ void IKOutputToArm(CStaArray &PathPlanPoint_R,CStaArray &PathPlanPoint_L)
 		printf("read failed");
 		printf("\n");
 
-		n=sprintf_s(buffer,sizeof(buffer),"%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n",gstatic_abst,LoadPercent_last_ok_L[Index_AXIS1],LoadPercent_last_ok_L[Index_AXIS2],LoadPercent_last_ok_L[Index_AXIS3],LoadPercent_last_ok_L[Index_AXIS4],LoadPercent_last_ok_L[Index_AXIS5],LoadPercent_last_ok_L[Index_AXIS6],LoadPercent_last_ok_L[Index_AXIS7]);
+		n=sprintf_s(buffer,sizeof(buffer),"%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n",gstatic_abst,LoadPercent_last_ok_L[Index_AXIS1],LoadPercent_last_ok_L[Index_AXIS2],LoadPercent_last_ok_L[Index_AXIS3],LoadPercent_last_ok_L[Index_AXIS4],LoadPercent_last_ok_L[Index_AXIS5],LoadPercent_last_ok_L[Index_AXIS6],LoadPercent_last_ok_L[Index_AXIS7]);
 		gfileJointLoad_L.write(buffer,n);
 	}
 		
@@ -1076,7 +1075,7 @@ void IKOutputToArm(CStaArray &PathPlanPoint_R,CStaArray &PathPlanPoint_L)
 		gstatic_abst+=gCycleT;
 }
 
-void LineMoveTo(int Coordinate,CStaArray &L_starP,CStaArray &L_endP,CStaArray &R_starP,CStaArray &R_endP,float CostTime)
+void LineMoveTo(int Coordinate,CStaArray &L_starP,CStaArray &L_endP,CStaArray &R_starP,CStaArray &R_endP,double CostTime)
 {
 	//==transfer frame coordinate to robot coordinate==//
 	if (Coordinate == DEF_OBJFRAME_COOR)
@@ -1090,14 +1089,14 @@ void LineMoveTo(int Coordinate,CStaArray &L_starP,CStaArray &L_endP,CStaArray &R
 		}
 	}
 
-	float const DEF_ACC_L[MAX_AXIS_NUM]={30,30,30,30,30,30,30}; //len/s^2
-	float const DEF_ACC_R[MAX_AXIS_NUM]={30,30,30,30,30,30,30};
+	double const DEF_ACC_L[MAX_AXIS_NUM]={30,30,30,30,30,30,30}; //len/s^2
+	double const DEF_ACC_R[MAX_AXIS_NUM]={30,30,30,30,30,30,30};
 
 	//==calculate if costtime is ok
-	float acc_L_min[MAX_AXIS_NUM]={0};
-	float acc_R_min[MAX_AXIS_NUM]={0};
-	float tb_L[MAX_AXIS_NUM]={0}; //parabolic time
-	float tb_R[MAX_AXIS_NUM]={0};
+	double acc_L_min[MAX_AXIS_NUM]={0};
+	double acc_R_min[MAX_AXIS_NUM]={0};
+	double tb_L[MAX_AXIS_NUM]={0}; //parabolic time
+	double tb_R[MAX_AXIS_NUM]={0};
 
 	for(int i=0;i<7;i++)//x,y,z,alpha,beta,gamma,rednt_alpha
 	{
@@ -1128,7 +1127,7 @@ void LineMoveTo(int Coordinate,CStaArray &L_starP,CStaArray &L_endP,CStaArray &R
 	CStaArray PathPlanPoint_R(0,0,0,0,0,0,0);
 	CStaArray PathPlanPoint_L(0,0,0,0,0,0,0);
 	
-	for(float t=0;t<=CostTime;t+=gCycleT)
+	for(double t=0;t<=CostTime;t+=gCycleT)
 	{
 		QueryPerformanceCounter(&nBeginTime); //Record cycle start time
 
@@ -1183,8 +1182,8 @@ void RotateMoveTo(int Coordinate,
 	CStaArray &R_starP,
 	CStaArray &R_endP,
 	CStaArray &arc_cen,
-	float rot_rad,
-	float CostTime)
+	double rot_rad,
+	double CostTime)
 {
 	if (Coordinate == DEF_OBJFRAME_COOR)
 	{
@@ -1198,22 +1197,22 @@ void RotateMoveTo(int Coordinate,
 		}
 	}
 	//右手圓周路徑
-	float rR=sqrt(pow(R_starP.at(DEF_X)-arc_cen.at(DEF_X),2)+pow(R_starP.at(DEF_Y)-arc_cen.at(DEF_Y),2));//右手旋轉半徑
-	float ini_rad_R=DEF_PI+atan((R_starP.at(DEF_Y)-arc_cen.at(DEF_Y))/(R_starP.at(DEF_X)-arc_cen.at(DEF_X)));//旋轉時的起始旋轉角度
+	double rR=sqrt(pow(R_starP.at(DEF_X)-arc_cen.at(DEF_X),2)+pow(R_starP.at(DEF_Y)-arc_cen.at(DEF_Y),2));//右手旋轉半徑
+	double ini_rad_R=DEF_PI+atan((R_starP.at(DEF_Y)-arc_cen.at(DEF_Y))/(R_starP.at(DEF_X)-arc_cen.at(DEF_X)));//旋轉時的起始旋轉角度
 
 	//左手圓周路徑
-	float rL=sqrt(pow(L_starP.at(DEF_X)-arc_cen.at(DEF_X),2)+pow(L_starP.at(DEF_Y)-arc_cen.at(DEF_Y),2));
-	float ini_rad_L=atan((L_starP.at(DEF_Y)-arc_cen.at(DEF_Y))/(L_starP.at(DEF_X)-arc_cen.at(DEF_X)));
+	double rL=sqrt(pow(L_starP.at(DEF_X)-arc_cen.at(DEF_X),2)+pow(L_starP.at(DEF_Y)-arc_cen.at(DEF_Y),2));
+	double ini_rad_L=atan((L_starP.at(DEF_Y)-arc_cen.at(DEF_Y))/(L_starP.at(DEF_X)-arc_cen.at(DEF_X)));
 	
 	//
-	float acc_deg_L=5; //cartesian space旋轉的角度的角速度
-	float acc_deg_R=5;
-	float DEF_ACC_L[MAX_AXIS_NUM]={acc_deg_L*DEF_RATIO_DEG_TO_RAD,acc_deg_L*DEF_RATIO_DEG_TO_RAD,acc_deg_L*DEF_RATIO_DEG_TO_RAD,30,30,30,30}; //item x,y,z use the same compenet to interpolate unit is rad/s^2   the rest of item's unit is len/s^2
-	float DEF_ACC_R[MAX_AXIS_NUM]={acc_deg_R*DEF_RATIO_DEG_TO_RAD,acc_deg_R*DEF_RATIO_DEG_TO_RAD,acc_deg_R*DEF_RATIO_DEG_TO_RAD,30,30,30,30}; 
-	float acc_L_min[MAX_AXIS_NUM]={0};
-	float acc_R_min[MAX_AXIS_NUM]={0};
-	float tb_L[MAX_AXIS_NUM]={0}; //parabolic time
-	float tb_R[MAX_AXIS_NUM]={0};
+	double acc_deg_L=5; //cartesian space旋轉的角度的角速度
+	double acc_deg_R=5;
+	double DEF_ACC_L[MAX_AXIS_NUM]={acc_deg_L*DEF_RATIO_DEG_TO_RAD,acc_deg_L*DEF_RATIO_DEG_TO_RAD,acc_deg_L*DEF_RATIO_DEG_TO_RAD,30,30,30,30}; //item x,y,z use the same compenet to interpolate unit is rad/s^2   the rest of item's unit is len/s^2
+	double DEF_ACC_R[MAX_AXIS_NUM]={acc_deg_R*DEF_RATIO_DEG_TO_RAD,acc_deg_R*DEF_RATIO_DEG_TO_RAD,acc_deg_R*DEF_RATIO_DEG_TO_RAD,30,30,30,30}; 
+	double acc_L_min[MAX_AXIS_NUM]={0};
+	double acc_R_min[MAX_AXIS_NUM]={0};
+	double tb_L[MAX_AXIS_NUM]={0}; //parabolic time
+	double tb_R[MAX_AXIS_NUM]={0};
 
 	//==calculate tb abd check time in this segment is enough==//
 	for (int i=0;i<7;i++)//x,y,z,alpha,beta,gamma,rednt_alpha
@@ -1257,10 +1256,10 @@ void RotateMoveTo(int Coordinate,
 	CStaArray PathPlanPoint_R(0,0,0,0,0,0,0);
 	CStaArray PathPlanPoint_L(0,0,0,0,0,0,0);
 
-	float current_rad_R=0.0;
-	float current_rad_L=0.0;
+	double current_rad_R=0.0;
+	double current_rad_L=0.0;
 
-	for(float t=0;t<=CostTime;t+=gCycleT)
+	for(double t=0;t<=CostTime;t+=gCycleT)
 	{
 		QueryPerformanceCounter(&nBeginTime); //Record cycle start time
 
@@ -1357,8 +1356,8 @@ void MoveToInitailPoint(int Coordinate,CStaArray &R_starP,CStaArray &L_starP)
 			L_starP.m_arr[i] = L_starP.at(i) + gTranFrameToRobot.at(i);
 		}
 	}
-	float vel_deg_R=20;
-	float vel_deg_L=20;
+	double vel_deg_R=20;
+	double vel_deg_L=20;
 
 	//MoveToPoint_Dual(R_p[0],pose_deg_R,Rednt_alpha_R,vel_deg_R,L_p[0],pose_deg_L,Rednt_alpha_L,vel_deg_L);  //20ms
 	MoveToPoint(DEF_RIGHT_HAND,R_starP.m_arr,vel_deg_R);
@@ -1440,21 +1439,21 @@ void TestSewingAction()
 
 #ifdef F446RE_GRIPPER_EN
 	//抬壓腳 抬
-	F446RE_FootLifter(true);
+	gpF446RE->FootLifter(true);
 	Sleep(5000);
 
 	//右手夾 左手夾
-	F446RE_Gripper_Hold(DEF_RIGHT_HAND,true,HoldTime);
+	gpF446RE->Gripper_Hold(DEF_RIGHT_HAND,true,HoldTime);
 	Sleep(IODelayTime);
-	F446RE_Gripper_Hold(DEF_LEFT_HAND,true,HoldTime);
+	gpF446RE->Gripper_Hold(DEF_LEFT_HAND,true,HoldTime);
 	Sleep(IODelayTime);
 
 	//抬壓腳 壓
-	F446RE_FootLifter(false);
+	gpF446RE->FootLifter(false);
 	Sleep(IODelayTime);
 
 	//主軸啟動
-	F446RE_Spindle(true);
+	gpF446RE->Spindle(true);
 	
 #endif
 
@@ -1469,11 +1468,12 @@ void TestSewingAction()
 
 #ifdef F446RE_GRIPPER_EN	
 	//主軸停止
-	F446RE_Spindle(false);
+	gpF446RE->Spindle(false);
+
 	Sleep(IODelayTime);
 
 	//右手不動 左手開
-	F446RE_Gripper_Hold(DEF_LEFT_HAND,false,RelTime);
+	gpF446RE->Gripper_Hold(DEF_LEFT_HAND,false,RelTime);
 	Sleep(IODelayTime);
 #endif
 
@@ -1503,11 +1503,11 @@ void TestSewingAction()
 
 #ifdef F446RE_GRIPPER_EN
 	//右手不動 左手夾
-	F446RE_Gripper_Hold(DEF_LEFT_HAND,true,HoldTime);
+	gpF446RE->Gripper_Hold(DEF_LEFT_HAND,true,HoldTime);
 	Sleep(IODelayTime);
 
 	//抬壓腳抬
-	F446RE_FootLifter(true);
+	gpF446RE->FootLifter(true);
 	Sleep(IODelayTime);
 #endif
 
@@ -1517,17 +1517,17 @@ void TestSewingAction()
 	L_starP.SetArray(-90+SewingLength+RelMovLen,90,0,-60,0,0,90);
 	L_endP.SetArray(-90,90,0,-90,0,0,90);
 	CStaArray arc_cen(gNeedle_ini_Plate); //旋轉圓心為針在架子上的起始點
-	float rot_rad=0.5*DEF_PI; //旋轉時的起始旋轉角度
+	double rot_rad=0.5*DEF_PI; //旋轉時的起始旋轉角度
 	CostTime=10;
 	RotateMoveTo(DEF_OBJFRAME_COOR,L_starP,L_endP,R_starP,R_endP,arc_cen,rot_rad,CostTime);
 
 #ifdef F446RE_GRIPPER_EN
 	//抬壓腳壓
-	F446RE_FootLifter(false);
+	gpF446RE->FootLifter(false);
 	Sleep(IODelayTime);
 
 	//右手開 左手不動
-	F446RE_Gripper_Hold(DEF_LEFT_HAND,false,RelTime);
+	gpF446RE->Gripper_Hold(DEF_LEFT_HAND,false,RelTime);
 	Sleep(IODelayTime);
 #endif
 
@@ -1557,7 +1557,7 @@ void TestSewingAction()
 
 #ifdef F446RE_GRIPPER_EN
 	//右手夾 左手不動1
-	F446RE_Gripper_Hold(DEF_RIGHT_HAND,true,HoldTime);
+	gpF446RE->Gripper_Hold(DEF_RIGHT_HAND,true,HoldTime);
 	Sleep(IODelayTime);
 #endif
 
@@ -1606,9 +1606,9 @@ void PickSewingObject()
 	//release end effector
 #ifdef F446RE_GRIPPER_EN
 	//右手開 左手開
-	F446RE_Gripper_Hold(DEF_RIGHT_HAND, false, RelTime);
+	gpF446RE->Gripper_Hold(DEF_RIGHT_HAND, false, RelTime);
 	Sleep(IODelayTime);
-	F446RE_Gripper_Hold(DEF_LEFT_HAND, false, RelTime);
+	gpF446RE->Gripper_Hold(DEF_LEFT_HAND, false, RelTime);
 	Sleep(IODelayTime);
 #endif
 
@@ -1635,9 +1635,9 @@ void PickSewingObject()
 	//catch the frame
 #ifdef F446RE_GRIPPER_EN
 	//右手夾 左手夾
-	F446RE_Gripper_Hold(DEF_RIGHT_HAND, true, HoldTime);
+	gpF446RE->Gripper_Hold(DEF_RIGHT_HAND, true, HoldTime);
 	Sleep(IODelayTime);
-	F446RE_Gripper_Hold(DEF_LEFT_HAND, true, HoldTime);
+	gpF446RE->Gripper_Hold(DEF_LEFT_HAND, true, HoldTime);
 	Sleep(IODelayTime);
 #endif
 
@@ -1657,8 +1657,8 @@ void PickSewingObject()
 int TestMoveToSewingHome_Dual()
 {
 	//float theta_R[7]={0.02,-1.02,-0.06,1.48,0.19,0.34,1.18};
-	float theta_R[7]={0.08,-0.72,0.36,1.48,0.78,0.05,1.22};
-	float theta_L[7]={-0.97,-0.16,1.39,1.07,0.22,-0.35,-0.91};
+	double theta_R[7]={0.08,-0.72,0.36,1.48,0.78,0.05,1.22};
+	double theta_L[7]={-0.97,-0.16,1.39,1.07,0.22,-0.35,-0.91};
 
 	//output to motor
 	unsigned short int velocity_R[MAX_AXIS_NUM]={6,3,5,2,4,4,4};
@@ -1698,9 +1698,9 @@ int Torque_Switch(int sw)
 	return 0;
 }
 
-int SetAllAccTo(float deg_s2)
+int SetAllAccTo(double deg_s2)
 {
-	unsigned short int acc_pus=(unsigned short int)deg_s2*DEF_RATIO_ACC_DEG_TO_PUS_DXL2;
+	unsigned short int acc_pus=(unsigned short int)(deg_s2*DEF_RATIO_ACC_DEG_TO_PUS_DXL2);
 	
 	dxl2_set_txpacket_id(BROADCAST_ID);
 	dxl2_set_txpacket_instruction(INST_SYNC_WRITE);
@@ -1727,7 +1727,7 @@ int SetAllAccTo(float deg_s2)
 
 
 
-int Output_to_Dynamixel(int RLHand,const float *Ang_rad,const unsigned short int *velocity) 
+int Output_to_Dynamixel(int RLHand,const double *Ang_rad,const unsigned short int *velocity)
 {
 	unsigned char i=0;
 
@@ -1843,7 +1843,7 @@ int Output_to_Dynamixel(int RLHand,const float *Ang_rad,const unsigned short int
 }
 
 
-int Output_to_Dynamixel_Dual(const float *Ang_rad_R,const unsigned short int *velocity_R,const float *Ang_rad_L,const unsigned short int *velocity_L) 
+int Output_to_Dynamixel_Dual(const double *Ang_rad_R,const unsigned short int *velocity_R,const double *Ang_rad_L,const unsigned short int *velocity_L)
 {
 	unsigned char i=0;
 
@@ -2053,9 +2053,9 @@ int Output_to_Dynamixel_pulse(const unsigned short int *Ang_pulse,const unsigned
 //}
 
 //使用CV Mat
-Mat R_z1x2y3(float alpha,float beta,float gamma)
+Mat R_z1x2y3(double alpha,double beta,double gamma)
 {
-	Mat ans=(Mat_<float>(3,3) <<	cos(alpha)*cos(gamma)-sin(alpha)*sin(beta)*sin(gamma),	-cos(beta)*sin(alpha)	,	cos(alpha)*sin(gamma)+cos(gamma)*sin(alpha)*sin(beta),  //0.06ms
+	Mat ans=(Mat_<double>(3,3) <<	cos(alpha)*cos(gamma)-sin(alpha)*sin(beta)*sin(gamma),	-cos(beta)*sin(alpha)	,	cos(alpha)*sin(gamma)+cos(gamma)*sin(alpha)*sin(beta),  //0.06ms
 									cos(gamma)*sin(alpha)+cos(alpha)*sin(beta)*sin(gamma),	cos(alpha)*cos(beta)	,	sin(alpha)*sin(gamma)-cos(alpha)*cos(gamma)*sin(beta),
 									-cos(beta)*sin(gamma),sin(beta),cos(beta)*cos(gamma));
 	return ans;
@@ -2093,16 +2093,16 @@ Mat R_z1x2y3(float alpha,float beta,float gamma)
 //	return R_a;
 //}
 //opencv matrix
-Mat Rogridues(float theta,Mat V_A)
+Mat Rogridues(double theta,Mat V_A)
 {
-	float cs = cos( theta );
-    float sn = sin( theta );
+	double cs = cos( theta );
+    double sn = sin( theta );
 
-	float* pV_A=V_A.ptr<float>(0);
+	double* pV_A=V_A.ptr<double>(0);
 	
 
 
-	Mat R_a=(Mat_<float>(4,4) <<	cs + pow(pV_A[0],2)*(1-cs)											,	pV_A[0]*pV_A[1]*(1-cs)-pV_A[2]*sn						,	pV_A[0]*pV_A[2]*(1-cs)+pV_A[1]*sn				,	0,
+	Mat R_a=(Mat_<double>(4,4) <<	cs + pow(pV_A[0],2)*(1-cs)											,	pV_A[0]*pV_A[1]*(1-cs)-pV_A[2]*sn						,	pV_A[0]*pV_A[2]*(1-cs)+pV_A[1]*sn				,	0,
 									pV_A[0]*pV_A[1]*(1-cs)+pV_A[2]*sn									,	cos(theta)+pow(pV_A[1],2)*(1-cs)						,	pV_A[1]*pV_A[2]*(1-cs)-pV_A[0]*sn				,	0,		
 									pV_A[0]*pV_A[2]*(1-cs)-pV_A[1]*sn									,	pV_A[1]*pV_A[2]*(1-cs)+pV_A[0]*sn						,	cs+pow(pV_A[2],2)*(1-cs)						,	0,
 									0																	,	0														,	0												,	1);
@@ -2110,13 +2110,12 @@ Mat Rogridues(float theta,Mat V_A)
 	return R_a;
 }
 
-
-Mat RotX( float radians )
+Mat RotX( double radians )
 {
-    float cs = cos( radians );
-    float sn = sin( radians );
+    double cs = cos( radians );
+    double sn = sin( radians );
 
-    Mat rotate=(Mat_<float>(4,4) << 1 , 0  ,  0  , 0,
+    Mat rotate=(Mat_<double>(4,4) << 1 , 0  ,  0  , 0,
 									0 , cs , -sn , 0,
 									0 , sn ,  cs , 0,
 									0 , 0  ,  0  , 1);
@@ -2125,12 +2124,12 @@ Mat RotX( float radians )
 
 }
 
-Mat RotY( float radians )
+Mat RotY( double radians )
 {
-    float cs = cos( radians );
-    float sn = sin( radians );
+    double cs = cos( radians );
+    double sn = sin( radians );
 
-    Mat rotate=(Mat_<float>(4,4) <<	cs		, 0   ,  sn  , 0,
+    Mat rotate=(Mat_<double>(4,4) <<	cs		, 0   ,  sn  , 0,
 									0		, 1   ,  0   , 0,
 									-sn		, 0   ,  cs  , 0,
 									0		, 0   ,  0   , 1);
@@ -2571,12 +2570,11 @@ int IK_7DOF_FB7roll(int RLHand,const float linkL[6],const float base[3],const fl
 */
 //#define SHOW_MATRIX
 //使用opencv matrix計算  第一次執行建構Mat 需要50ms 下次執行後時間可縮到1.5ms
-int IK_7DOF_FB7roll(int RLHand,const float linkL[6],const float base[3],const float Pend[3],const float PoseAngle[3],const float Rednt_alpha,float* out_theta)
+int IK_7DOF_FB7roll(int RLHand,const double linkL[6],const double base[3],const double Pend[3],const double PoseAngle[3],const double Rednt_alpha, double* out_theta)
 {
     //輸出參數initial
-	float theta[7]={0};
-	float tempfloat=0.0;
-    
+	double theta[7]={0};
+	double tempdouble = 0.0;
 	//輸入連桿長度
 	//linkL[0];//L0 頭到肩膀
 	//linkL[1];//L1 上臂L型長邊
@@ -2606,7 +2604,7 @@ int IK_7DOF_FB7roll(int RLHand,const float linkL[6],const float base[3],const fl
 	Mat V_H_hat_z=R.col(2); //取出歐拉角轉換的旋轉矩陣，取出第3行為Z軸旋轉後向量
 	V_H_hat_z = V_H_hat_z/norm(V_H_hat_z,NORM_L2);
 
-	Mat V_r_end=(Mat_<float>(3,1) <<Pend[0]-base[0],//x 
+	Mat V_r_end=(Mat_<double>(3,1) <<Pend[0]-base[0],//x 
 									Pend[1]-base[1],//y
 									Pend[2]-base[2]);//z
 	
@@ -2617,30 +2615,30 @@ int IK_7DOF_FB7roll(int RLHand,const float linkL[6],const float base[3],const fl
 	Mat V_r_wst=V_r_end-V_r_h;
   
 	// ==Axis4== //
-    float ru_norm=sqrt(pow(linkL[1],2)+pow(linkL[2],2)); //L型的斜邊長度
-    float rf_norm=sqrt(pow(linkL[3],2)+pow(linkL[4],2));
+    double ru_norm=sqrt(pow(linkL[1],2)+pow(linkL[2],2)); //L型的斜邊長度
+    double rf_norm=sqrt(pow(linkL[3],2)+pow(linkL[4],2));
 	
-    float theta_tmp=(float)acos((pow(ru_norm,2) + pow(rf_norm,2)- pow(norm(V_r_wst),2)) / (2*ru_norm*rf_norm));
-    theta[Index_AXIS4]=(float)(2*M_PI)-atan2(linkL[1],linkL[2])-atan2(linkL[4],linkL[3])-theta_tmp;
+    double theta_tmp=acos((pow(ru_norm,2) + pow(rf_norm,2)- pow(norm(V_r_wst),2)) / (2*ru_norm*rf_norm));
+    theta[Index_AXIS4]=2*M_PI-atan2(linkL[1],linkL[2])-atan2(linkL[4],linkL[3])-theta_tmp;
 
     // ==AXIS1 2== //
 	Mat V_r_m=(pow(ru_norm,2)-pow(rf_norm,2)+pow(norm(V_r_wst),2))/(2*pow(norm(V_r_wst),2))*V_r_wst;
 
 	//Redundant circle 半徑R
-	float Rednt_cir_R =(float)(pow(ru_norm,2)- pow((pow(ru_norm,2)-pow(rf_norm,2) + pow(norm(V_r_wst),2))/(2*norm(V_r_wst)) , 2));
+	double Rednt_cir_R =pow(ru_norm,2)- pow((pow(ru_norm,2)-pow(rf_norm,2) + pow(norm(V_r_wst),2))/(2*norm(V_r_wst)) , 2);
 	Rednt_cir_R=sqrt(Rednt_cir_R);
 
    
 	//圓中心點到Elbow向量 V_r_u
-	Mat V_shx=(Mat_<float>(3,1) <<	1,  
+	Mat V_shx=(Mat_<double>(3,1) <<	1,  
 									0,
 									0);
 
-	Mat V_shy=(Mat_<float>(3,1) <<	0,  
+	Mat V_shy=(Mat_<double>(3,1) <<	0,  
 									1,
 									0);
 
-	Mat V_shz=(Mat_<float>(3,1) <<	0,  
+	Mat V_shz=(Mat_<double>(3,1) <<	0,  
 									0,
 									1);
 
@@ -2655,17 +2653,17 @@ int IK_7DOF_FB7roll(int RLHand,const float linkL[6],const float base[3],const fl
 	Mat V_r_wst_unit=V_r_wst/norm(V_r_wst,NORM_L2);
 	Mat V_temp3x1=V_beta_hat*Rednt_cir_R;
 
-	float *pV_temp3x1=V_temp3x1.ptr<float>(0);
-	Mat V_temp4x1=(Mat_<float>(4,1)<<	pV_temp3x1[0],
+	double *pV_temp3x1=V_temp3x1.ptr<double>(0);
+	Mat V_temp4x1=(Mat_<double>(4,1)<<	pV_temp3x1[0],
 										pV_temp3x1[1],
 										pV_temp3x1[2],
 										1);
 
 	Mat temp=Rogridues(Rednt_alpha,V_r_wst_unit)*V_temp4x1;//temp=Rogridues(Rednt_alpha,V_r_wst/norm(V_r_wst)) *[Rednt_cir_R*V_beta_hat;1];  //Rednt_alpha的方向和論文上的方向性相反 //0.04ms
 	
-	float* ptemp=temp.ptr<float>(0);
+	double* ptemp=temp.ptr<double>(0);
 
-	Mat V_R_u=(Mat_<float>(3,1)<<	ptemp[0],
+	Mat V_R_u=(Mat_<double>(3,1)<<	ptemp[0],
 									ptemp[1],
 									ptemp[2]);					
 
@@ -2675,20 +2673,20 @@ int IK_7DOF_FB7roll(int RLHand,const float linkL[6],const float base[3],const fl
 	temp_cross=V_r_u.cross(V_r_f);
 	Mat Vn_u_f=temp_cross/norm(temp_cross,NORM_L2);//Vn_u_f=cross(V_r_u,V_r_f)/norm(cross(V_r_u,V_r_f)); //ru 及 rf的z法向量
 	
-	float theta_upoff=atan(linkL[2]/linkL[1]);
-	float* pV_r_u=V_r_u.ptr<float>(0);
-	V_temp4x1=(Mat_<float>(4,1)<<	pV_r_u[0],
+	double theta_upoff=atan(linkL[2]/linkL[1]);
+	double* pV_r_u=V_r_u.ptr<double>(0);
+	V_temp4x1=(Mat_<double>(4,1)<<	pV_r_u[0],
 									pV_r_u[1],
 									pV_r_u[2],
 									1);				
 
 	temp=Rogridues(-theta_upoff,Vn_u_f)*V_temp4x1;//temp=Rogridues(-theta_upoff,Vn_u_f)*[V_r_u;1];  //旋轉 V_r_u  到V_ru_l1
-	Mat V_ru_l1=(Mat_<float>(3,1)<<	ptemp[0],
+	Mat V_ru_l1=(Mat_<double>(3,1)<<	ptemp[0],
 									ptemp[1],
 									ptemp[2]);		
 	V_ru_l1=linkL[1]*V_ru_l1/norm(V_ru_l1,NORM_L2); //調整成L1長度
 	
-	float* pV_ru_l1=V_ru_l1.ptr<float>(0);
+	double* pV_ru_l1=V_ru_l1.ptr<double>(0);
 	theta[Index_AXIS1]=atan2(pV_ru_l1[0],-pV_ru_l1[2]);//theta(1)=atan2(V_ru_l1(1),-V_ru_l1(3));
 
 	if (theta[Index_AXIS1] !=0) 
@@ -2699,67 +2697,67 @@ int IK_7DOF_FB7roll(int RLHand,const float linkL[6],const float base[3],const fl
 	
 	// ==AXIS3== //
 	Mat nV_shy=V_shy*(-1);
-	float* pnV_shy=nV_shy.ptr<float>(0);
-	V_temp4x1=(Mat_<float>(4,1)<<	pnV_shy[0],
+	double* pnV_shy=nV_shy.ptr<double>(0);
+	V_temp4x1=(Mat_<double>(4,1)<<	pnV_shy[0],
 									pnV_shy[1],
 									pnV_shy[2],
 									1);			
 	temp=RotY(-theta[Index_AXIS1])*RotX(theta[Index_AXIS2])*V_temp4x1;// V_n_yrot12=Ry(-theta(1))*Rx(theta(2))*[-V_shy;1];  //第一軸和大地Y座標方向相反
 
-	Mat V_n_yrot12=(Mat_<float>(3,1)<<	ptemp[0],
+	Mat V_n_yrot12=(Mat_<double>(3,1)<<	ptemp[0],
 										ptemp[1],
 										ptemp[2]);		
 
 	Mat Vn_nuf_nyrot12=Vn_u_f.cross(V_n_yrot12);
 	Vn_nuf_nyrot12=Vn_nuf_nyrot12/norm(Vn_nuf_nyrot12,NORM_L2);
-	tempfloat=(float)(V_n_yrot12.dot(Vn_u_f)/norm(V_n_yrot12,NORM_L2)/norm(Vn_u_f,NORM_L2));// temp=V_n_yrot12'*Vn_u_f/norm(V_n_yrot12)/norm(Vn_u_f); 
+	tempdouble=V_n_yrot12.dot(Vn_u_f)/norm(V_n_yrot12,NORM_L2)/norm(Vn_u_f,NORM_L2);// temp=V_n_yrot12'*Vn_u_f/norm(V_n_yrot12)/norm(Vn_u_f); 
 	
 
 	//防止在acos(1.000000.....)的時候會出現虛部的情況
-	if (abs(tempfloat-1) < DEF_COSVAL_VERY_SMALL)
+	if (abs(tempdouble-1) < DEF_COSVAL_VERY_SMALL)
     {   
-		if (tempfloat >0)
-			tempfloat=1;
+		if (tempdouble >0)
+			tempdouble=1;
 		else
-			tempfloat=-1;
+			tempdouble=-1;
 	}
 
 	//Vn_u_f 和 V_n_yrot12的法向量   與 V_ru_l1同方向 theta(3)需要加負號
 	if ( norm(Vn_nuf_nyrot12 - V_ru_l1/norm(V_ru_l1,NORM_L2),NORM_L2) < DEF_NORM_VERY_SMALL )
-		theta[Index_AXIS3]=-acos(tempfloat);
+		theta[Index_AXIS3]=-acos(tempdouble);
 	else
-		theta[Index_AXIS3]=acos(tempfloat);
+		theta[Index_AXIS3]=acos(tempdouble);
 
 	
     // ==Axis5== //
-	float theat_lowoff=atan(linkL[3]/linkL[4]); //temp=Rogridues(theat_lowoff,Vn_u_f)*[V_r_f;1];  //旋轉 V_r_f  V_rf_l4
-	float *pV_r_f=V_r_f.ptr<float>(0);
-	V_temp4x1=(Mat_<float>(4,1)<<	pV_r_f[0],
+	double theat_lowoff=atan(linkL[3]/linkL[4]); //temp=Rogridues(theat_lowoff,Vn_u_f)*[V_r_f;1];  //旋轉 V_r_f  V_rf_l4
+	double *pV_r_f=V_r_f.ptr<double>(0);
+	V_temp4x1=(Mat_<double>(4,1)<<	pV_r_f[0],
 									pV_r_f[1],
 									pV_r_f[2],
 									1);			
 	temp=Rogridues(theat_lowoff,Vn_u_f)*V_temp4x1; 
-	Mat V_rf_l4=(Mat_<float>(3,1)<<	ptemp[0],
+	Mat V_rf_l4=(Mat_<double>(3,1)<<	ptemp[0],
 									ptemp[1],
 									ptemp[2]);		
 	V_rf_l4=V_rf_l4*linkL[4]/norm(V_rf_l4,NORM_L2); //調整成L4長度
 
 	//V_n_rfl4 及V_n_rf形成的平面 的法向量
 	Mat Vn_rfl4_nuf=V_rf_l4.cross(Vn_u_f)/norm(V_rf_l4.cross(Vn_u_f));//Vn_rfl4_nuf=cross(V_rf_l4,Vn_u_f)/norm(cross(V_rf_l4,Vn_u_f));
-	float t_rfl4_nuf=(float)((Vn_rfl4_nuf.dot(V_r_wst)-Vn_rfl4_nuf.dot(V_r_end))/pow(norm(Vn_rfl4_nuf,NORM_L2),2));//  t_rfl4_nuf=(Vn_rfl4_nuf'*V_r_wst-Vn_rfl4_nuf'*V_r_end)/(norm(Vn_rfl4_nuf)^2); //V_n_rf,V_n_rfl4平面上，且經過V_r_end點的直線參數式的t 為rfl4_nuf
+	double t_rfl4_nuf=(Vn_rfl4_nuf.dot(V_r_wst)-Vn_rfl4_nuf.dot(V_r_end))/pow(norm(Vn_rfl4_nuf,NORM_L2),2);//  t_rfl4_nuf=(Vn_rfl4_nuf'*V_r_wst-Vn_rfl4_nuf'*V_r_end)/(norm(Vn_rfl4_nuf)^2); //V_n_rf,V_n_rfl4平面上，且經過V_r_end點的直線參數式的t 為rfl4_nuf
 	Mat Vproj_end_rfl4_nuf =V_r_end+t_rfl4_nuf*Vn_rfl4_nuf;//V_r_end 沿著V_n_rfl4,V_n_rf平面法向量投影在平面上的點
 	Mat V_wst_to_projend_rfl4_nuf=Vproj_end_rfl4_nuf-V_r_wst;
 
 	//V_n_rfl4 及V_n_rf形成的平面 的法向量
 	//防止在acos(1.000000.....)的時候會出現虛部的情況
-	tempfloat=(float)(V_rf_l4.dot(V_wst_to_projend_rfl4_nuf)/norm(V_rf_l4,NORM_L2)/norm(V_wst_to_projend_rfl4_nuf,NORM_L2));//temp=V_rf_l4'*V_wst_to_projend_rfl4_nuf/norm(V_rf_l4)/norm(V_wst_to_projend_rfl4_nuf);
+	tempdouble=V_rf_l4.dot(V_wst_to_projend_rfl4_nuf)/norm(V_rf_l4,NORM_L2)/norm(V_wst_to_projend_rfl4_nuf,NORM_L2);//temp=V_rf_l4'*V_wst_to_projend_rfl4_nuf/norm(V_rf_l4)/norm(V_wst_to_projend_rfl4_nuf);
 
-	if (abs(tempfloat-1) < DEF_COSVAL_VERY_SMALL) 
+	if (abs(tempdouble-1) < DEF_COSVAL_VERY_SMALL) 
 	{
-		if (tempfloat >0)
-			tempfloat=1;
+		if (tempdouble >0)
+			tempdouble=1;
 		else
-			tempfloat=-1;
+			tempdouble=-1;
 	}	
 
 	Mat V_rf_l4_unit=V_rf_l4/norm(V_rf_l4,NORM_L2);
@@ -2769,18 +2767,18 @@ int IK_7DOF_FB7roll(int RLHand,const float linkL[6],const float base[3],const fl
 
 	//平面法向量 和 Vn_rfl4_nuf  同邊要加負號  判斷theta5要往上或往下轉
 	if (norm(Vn_rfl4_WstToProjEndRfl4Nuf - Vn_rfl4_nuf,NORM_L2) < DEF_NORM_VERY_SMALL)
-        theta[Index_AXIS5]=-acos(tempfloat); 
+        theta[Index_AXIS5]=-acos(tempdouble); 
     else
-        theta[Index_AXIS5]=acos(tempfloat); 
+        theta[Index_AXIS5]=acos(tempdouble); 
 
 	// ==Axis6== //
-	float *pVn_u_f=Vn_u_f.ptr<float>(0);
-	V_temp4x1=(Mat_<float>(4,1)<<	pVn_u_f[0],
+	double *pVn_u_f=Vn_u_f.ptr<double>(0);
+	V_temp4x1=(Mat_<double>(4,1)<<	pVn_u_f[0],
 									pVn_u_f[1],
 									pVn_u_f[2],
 									1);			
 	temp=Rogridues(-theta[Index_AXIS5],Vn_rfl4_nuf)*V_temp4x1; //nuf 沿著 Vn_rfl4_nuf 旋轉第5軸角度得到投影點與目標點平面的法向量
-	Mat Vn_nuf_rotx5_along_NRfl4Nuf=(Mat_<float>(3,1)<<	ptemp[0],
+	Mat Vn_nuf_rotx5_along_NRfl4Nuf=(Mat_<double>(3,1)<<ptemp[0],
 														ptemp[1],
 														ptemp[2]);		
 	Vn_nuf_rotx5_along_NRfl4Nuf=Vn_nuf_rotx5_along_NRfl4Nuf/norm(Vn_nuf_rotx5_along_NRfl4Nuf,NORM_L2);
@@ -2791,15 +2789,15 @@ int IK_7DOF_FB7roll(int RLHand,const float linkL[6],const float base[3],const fl
 	Vn_WstToEnd_WstToProjEndRfl4Nuf=Vn_WstToEnd_WstToProjEndRfl4Nuf/norm(Vn_WstToEnd_WstToProjEndRfl4Nuf,NORM_L2);
 
 	//利用法向量方向 判斷theta6旋轉方向
-	tempfloat=(float)(V_wst_to_projend_rfl4_nuf.dot(V_wst_to_end)/norm(V_wst_to_projend_rfl4_nuf,NORM_L2)/norm(V_wst_to_end,NORM_L2));//temp=V_wst_to_projend_rfl4_nuf'*V_wst_to_end/norm(V_wst_to_projend_rfl4_nuf)/norm(V_wst_to_end);
+	tempdouble=V_wst_to_projend_rfl4_nuf.dot(V_wst_to_end)/norm(V_wst_to_projend_rfl4_nuf,NORM_L2)/norm(V_wst_to_end,NORM_L2);//temp=V_wst_to_projend_rfl4_nuf'*V_wst_to_end/norm(V_wst_to_projend_rfl4_nuf)/norm(V_wst_to_end);
 	if (norm(Vn_WstToEnd_WstToProjEndRfl4Nuf - Vn_nuf_rotx5_along_NRfl4Nuf) < DEF_NORM_VERY_SMALL)
-        theta[Index_AXIS6]=-acos(tempfloat); 
+        theta[Index_AXIS6]=-acos(tempdouble); 
     else
-        theta[Index_AXIS6]=acos(tempfloat); 
+        theta[Index_AXIS6]=acos(tempdouble); 
 	
 	// ==Axis7== //	
-	float *pV_shx=V_shx.ptr<float>(0);
-	V_temp4x1=(Mat_<float>(4,1)<<	pV_shx[0],
+	double *pV_shx=V_shx.ptr<double>(0);
+	V_temp4x1=(Mat_<double>(4,1)<<	pV_shx[0],
 									pV_shx[1],
 									pV_shx[2],
 									1);		
@@ -2811,7 +2809,7 @@ int IK_7DOF_FB7roll(int RLHand,const float linkL[6],const float base[3],const fl
 	temp=Rogridues(theta[Index_AXIS5],Vn_rfl4_nuf*(1/norm(Vn_rfl4_nuf)))*temp;		//temp=Rogridues(theta(5),Vn_rfl4_nuf/norm(Vn_rfl4_nuf))*temp; 
 	temp=Rogridues(theta[Index_AXIS6],Vn_nuf_rotx5_along_NRfl4Nuf)*temp;			//temp=Rogridues(theta(6),Vn_nuf_rotx5_along_NRfl4Nuf)*temp; 
 	
-	V_x_rot1to6=(Mat_<float>(3,1)<<	ptemp[0],
+	V_x_rot1to6=(Mat_<double>(3,1)<<	ptemp[0],
 									ptemp[1],
 									ptemp[2]);	
 	V_x_rot1to6=V_x_rot1to6/norm(V_x_rot1to6,NORM_L2);
@@ -2821,18 +2819,18 @@ int IK_7DOF_FB7roll(int RLHand,const float linkL[6],const float base[3],const fl
 	Vn_xrot1to6_VHhatz=Vn_xrot1to6_VHhatz/norm(Vn_xrot1to6_VHhatz,NORM_L2);
 
 	//V_shx經過123456軸旋轉後和末點座標系的Z軸還差幾度
-	tempfloat=(float)(V_x_rot1to6.dot(V_H_hat_z)/norm(V_x_rot1to6,NORM_L2)/norm(V_H_hat_z,NORM_L2));// theta(7)=acos(V_x_rot1to6'*V_H_hat_z/norm(V_x_rot1to6)/norm(V_H_hat_z));
-	if (abs(tempfloat-1) < DEF_COSVAL_VERY_SMALL)
+	tempdouble=V_x_rot1to6.dot(V_H_hat_z)/norm(V_x_rot1to6,NORM_L2)/norm(V_H_hat_z,NORM_L2);// theta(7)=acos(V_x_rot1to6'*V_H_hat_z/norm(V_x_rot1to6)/norm(V_H_hat_z));
+	if (abs(tempdouble-1) < DEF_COSVAL_VERY_SMALL)
     {   
-		if (tempfloat >0)
-			tempfloat=1;
+		if (tempdouble >0)
+			tempdouble=1;
 		else
-			tempfloat=-1;
+			tempdouble=-1;
 	}
 	if (norm(Vn_xrot1to6_VHhatz - V_H_hat_x,NORM_L2) <  DEF_NORM_VERY_SMALL)
-        theta[Index_AXIS7]=acos(tempfloat);
+        theta[Index_AXIS7]=acos(tempdouble);
     else
-        theta[Index_AXIS7]=-acos(tempfloat);  
+        theta[Index_AXIS7]=-acos(tempdouble);  
 	
 	// ==左右手第1軸方向相反== //
     if (RLHand == DEF_LEFT_HAND) //左手和右手第一軸方向相反
@@ -2847,7 +2845,7 @@ int IK_7DOF_FB7roll(int RLHand,const float linkL[6],const float base[3],const fl
 //================================================================================//
 //==prevent angle over constrain.If over occur,over_index shows which axis over ==//
 //================================================================================//
-bool AngleOverConstrain(int RLHand, const float theta[MAX_AXIS_NUM],int *OverIndex)
+bool AngleOverConstrain(int RLHand, const double theta[MAX_AXIS_NUM],int *OverIndex)
 {
 	bool bOver=false;
 	*OverIndex=NULL;
@@ -2882,14 +2880,14 @@ bool AngleOverConstrain(int RLHand, const float theta[MAX_AXIS_NUM],int *OverInd
 }
 
 
-int MoveToPoint(int RLHand,float Point[7],float vel_deg)  //point[x,y,z,alpha,beta,gamma,redant_alpha]
+int MoveToPoint(int RLHand,double Point[7], double vel_deg)  //point[x,y,z,alpha,beta,gamma,redant_alpha]
 {
-	const float linkL[6]={L0,L1,L2,L3,L4,L5};
-	float base[3]={0.0};
-	float Pend[3]={Point[DEF_X],Point[DEF_Y],Point[DEF_Z]};
-	float Pose_rad[3]={Point[DEF_ALPHA]*DEF_RATIO_DEG_TO_RAD,Point[DEF_BETA]*DEF_RATIO_DEG_TO_RAD,Point[DEF_GAMMA]*DEF_RATIO_DEG_TO_RAD};
-	float Rednt_alpha=Point[DEF_REDNT_ALPHA]*DEF_RATIO_DEG_TO_RAD;
-	float theta[7]={0};
+	const double linkL[6]={L0,L1,L2,L3,L4,L5};
+	double base[3]={0.0};
+	double Pend[3]={Point[DEF_X],Point[DEF_Y],Point[DEF_Z]};
+	double Pose_rad[3]={Point[DEF_ALPHA]*DEF_RATIO_DEG_TO_RAD,Point[DEF_BETA]*DEF_RATIO_DEG_TO_RAD,Point[DEF_GAMMA]*DEF_RATIO_DEG_TO_RAD};
+	double Rednt_alpha=Point[DEF_REDNT_ALPHA]*DEF_RATIO_DEG_TO_RAD;
+	double theta[7]={0};
 	unsigned short int vel_pus=(unsigned short int)(vel_deg*DEF_RATIO_VEL_DEG_TO_PUS_DXL2);
 	int rt=0;
 	
@@ -2956,19 +2954,19 @@ int MoveToPoint(int RLHand,float Point[7],float vel_deg)  //point[x,y,z,alpha,be
 	return 0;
 }
 
-int MoveToPoint_Dual(float Point_R[7],float Point_L[7])
+int MoveToPoint_Dual(double Point_R[7],double Point_L[7])
 {
-	const float linkL[6]={L0,L1,L2,L3,L4,L5};
-	float base_R[3]={0,-L0,0};
-	float base_L[3]={0,L0,0};
+	const double linkL[6]={L0,L1,L2,L3,L4,L5};
+	double base_R[3]={0,-L0,0};
+	double base_L[3]={0,L0,0};
 
-	float Pend_R[3]={Point_R[DEF_X],Point_R[DEF_Y],Point_R[DEF_Z]};
-	float Pend_L[3]={Point_L[DEF_X],Point_L[DEF_Y],Point_L[DEF_Z]};
-	float Pose_rad_R[3]={Point_R[DEF_ALPHA]*DEF_RATIO_DEG_TO_RAD,Point_R[DEF_BETA]*DEF_RATIO_DEG_TO_RAD,Point_R[DEF_GAMMA]*DEF_RATIO_DEG_TO_RAD};
-	float Pose_rad_L[3]={Point_L[DEF_ALPHA]*DEF_RATIO_DEG_TO_RAD,Point_L[DEF_BETA]*DEF_RATIO_DEG_TO_RAD,Point_L[DEF_GAMMA]*DEF_RATIO_DEG_TO_RAD};
+	double Pend_R[3]={Point_R[DEF_X],Point_R[DEF_Y],Point_R[DEF_Z]};
+	double Pend_L[3]={Point_L[DEF_X],Point_L[DEF_Y],Point_L[DEF_Z]};
+	double Pose_rad_R[3]={Point_R[DEF_ALPHA]*DEF_RATIO_DEG_TO_RAD,Point_R[DEF_BETA]*DEF_RATIO_DEG_TO_RAD,Point_R[DEF_GAMMA]*DEF_RATIO_DEG_TO_RAD};
+	double Pose_rad_L[3]={Point_L[DEF_ALPHA]*DEF_RATIO_DEG_TO_RAD,Point_L[DEF_BETA]*DEF_RATIO_DEG_TO_RAD,Point_L[DEF_GAMMA]*DEF_RATIO_DEG_TO_RAD};
 
-	float Rednt_alpha_rad_R=Point_R[DEF_REDNT_ALPHA]*DEF_RATIO_DEG_TO_RAD;
-	float Rednt_alpha_rad_L=Point_L[DEF_REDNT_ALPHA]*DEF_RATIO_DEG_TO_RAD;
+	double Rednt_alpha_rad_R=Point_R[DEF_REDNT_ALPHA]*DEF_RATIO_DEG_TO_RAD;
+	double Rednt_alpha_rad_L=Point_L[DEF_REDNT_ALPHA]*DEF_RATIO_DEG_TO_RAD;
 
 	//float theta_R[7]={0};
 	//float theta_L[7]={0};
@@ -3542,11 +3540,9 @@ int GripperHold(int RLHand,bool Hold)
 //=================================
 //==c++ rs232 communicate to f446re
 //==================================
-
-
-cF446RE::cF446RE(int com, int baudrate)
+cF446RE::cF446RE()
 {
-	initial(com, baudrate);
+	_hserialPort = NULL;
 }
 
 bool cF446RE::initial(int com, int baudrate)

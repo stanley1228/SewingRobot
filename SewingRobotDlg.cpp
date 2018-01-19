@@ -58,7 +58,8 @@ void InitConsole()
 	int nRet = 0;
 	FILE* fp;
 	AllocConsole();
-	nRet = _open_osfhandle((long)GetStdHandle(STD_OUTPUT_HANDLE), _O_TEXT);
+	//nRet = _open_osfhandle((long)GetStdHandle(STD_OUTPUT_HANDLE), _O_TEXT);
+	nRet = _open_osfhandle((intptr_t)GetStdHandle(STD_OUTPUT_HANDLE), _O_TEXT);
 	fp = _fdopen(nRet, "w");
 	*stdout = *fp;
 	setvbuf(stdout, NULL, _IONBF, 0);
@@ -121,7 +122,7 @@ HCURSOR CSewingRobotDlg::OnQueryDragIcon()
 
 
 
-cF446RE* gpF446RE;
+extern cF446RE* gpF446RE;
 
 void CSewingRobotDlg::OnBnClickedBtnIniDxl()
 {
@@ -189,7 +190,8 @@ void CSewingRobotDlg::OnBnClickedBtnIniF446()
 {
 	// TODO: 在此加入控制項告知處理常式程式碼
 	//F446RE_Initial();
-	gpF446RE = new cF446RE(3, 9600);
+	gpF446RE = new cF446RE();
+	gpF446RE->initial(3, 9600);
 	printf("F446RE_Initial\n");
 }
 
@@ -213,7 +215,9 @@ void CSewingRobotDlg::OnClose()
 	// TODO: 在此加入您的訊息處理常式程式碼和 (或) 呼叫預設值
 
 	DXL_Terminate();
-	gpF446RE->close();
+
+	if(gpF446RE!=NULL)
+		gpF446RE->close();
 
 
 	CDialogEx::OnClose();
