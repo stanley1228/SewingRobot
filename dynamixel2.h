@@ -103,7 +103,7 @@ extern "C" {
 #define TORQUE_ENABLE_LENGTH	1
 #define	STILL_MOVING_LENGTH		1 
 #define	PRESENT_CURRENT_LENGTH  2
-
+#define	PRESENT_VEL_LENGTH		4
 //wait for comment
 #define PRESENT_LOAD		(126)
 #define GOAL_ACC			(108)
