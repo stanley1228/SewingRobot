@@ -48,6 +48,8 @@ BEGIN_MESSAGE_MAP(CSewingRobotDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_MOVETOHOME, &CSewingRobotDlg::OnBnClickedBtnMovetohome)
 	ON_BN_CLICKED(IDC_BTN_TORQUE_DISABLE, &CSewingRobotDlg::OnBnClickedBtnTorqueDisable)
 	ON_BN_CLICKED(IDC_BTN_MOVETO_INIT, &CSewingRobotDlg::OnBnClickedBtnMovetoInit)
+	ON_BN_CLICKED(IDC_GET_OBJ, &CSewingRobotDlg::OnBnClickedGetObj)
+	ON_BN_CLICKED(IDC_BTN_VISION_ON, &CSewingRobotDlg::OnBnClickedBtnVisionOn)
 END_MESSAGE_MAP()
 
 
@@ -264,4 +266,16 @@ void CSewingRobotDlg::OnBnClickedBtnMovetoInit()
 	CStaArray R_IniP(-90, -90, 0, 50, 0, 0, -50);
 	CStaArray L_IniP(-90, 90, 0, -90, 0, 0, 90);
 	MoveToInitailPoint(DEF_OBJFRAME_COOR,R_IniP, L_IniP);
+}
+
+
+void CSewingRobotDlg::OnBnClickedGetObj()
+{
+	GetObjCornerCoorFromImage();
+}
+
+
+void CSewingRobotDlg::OnBnClickedBtnVisionOn()
+{
+	VisionOn();
 }

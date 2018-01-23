@@ -47,4 +47,6 @@ public:
 	afx_msg void OnBnClickedBtnTorqueDisable();
 	afx_msg void OnBnClickedBtnMovetoInit();
 
+	afx_msg void OnBnClickedGetObj();
+	afx_msg void OnBnClickedBtnVisionOn();
 };

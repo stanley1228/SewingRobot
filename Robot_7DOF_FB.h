@@ -632,6 +632,8 @@ public:
 //==CV_Test
 //========
 void testcv();
+void GetObjCornerCoorFromImage();
+void VisionOn();
 
 //dxl2.0 test
 int dxl2test();

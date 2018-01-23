@@ -3772,6 +3772,430 @@ void testcv()
 
 }
 
+
+//==========
+//vision on
+//==========
+//==============
+//vision on ORB
+//==============
+#include "stats.h" // Stats structure definition
+#include "utils.h" // Drawing and printing functions
+
+const double akaze_thresh = 3e-4; // AKAZE detection threshold set to locate about 1000 keypoints
+const double ransac_thresh = 2.5f; // RANSAC inlier threshold
+const double nn_match_ratio = 0.8f; // Nearest-neighbour matching ratio
+const int bb_min_inliers = 10; // Minimal number of inliers to draw bounding box
+const int stats_update_period = 10; // On-screen statistics are updated every 10 frames
+namespace example {
+	class Tracker
+	{
+	public:
+		Tracker(Ptr<Feature2D> _detector, Ptr<DescriptorMatcher> _matcher) :
+			detector(_detector),
+			matcher(_matcher)
+		{}
+		void setFirstFrame(const Mat frame, vector<Point2f> bb, string title, Stats& stats);
+		void setFirstFrame(const Mat frame, const Mat ref_frame, Stats& stats);//stanley
+
+		Mat process(const Mat frame, Stats& stats, vector<Point2f> &bb);//stanley add bb
+		Ptr<Feature2D> getDetector() {
+			return detector;
+		}
+	protected:
+		Ptr<Feature2D> detector;
+		Ptr<DescriptorMatcher> matcher;
+		Mat first_frame, first_desc;
+		vector<KeyPoint> first_kp;
+		vector<Point2f> object_bb;
+	};
+	void Tracker::setFirstFrame(const Mat frame, vector<Point2f> bb, string title, Stats& stats)
+	{
+		cv::Point *ptMask = new cv::Point[bb.size()];
+		const Point* ptContain = { &ptMask[0] };
+		int iSize = static_cast<int>(bb.size());
+		for (size_t i = 0; i<bb.size(); i++) {
+			ptMask[i].x = static_cast<int>(bb[i].x);
+			ptMask[i].y = static_cast<int>(bb[i].y);
+		}
+		first_frame = frame.clone();
+		cv::Mat matMask = cv::Mat::zeros(frame.size(), CV_8UC1);
+		cv::fillPoly(matMask, &ptContain, &iSize, 1, cv::Scalar::all(255));
+		detector->detectAndCompute(first_frame, matMask, first_kp, first_desc);
+		stats.keypoints = (int)first_kp.size();
+		drawBoundingBox(first_frame, bb);
+		putText(first_frame, title, Point(0, 60), FONT_HERSHEY_PLAIN, 5, Scalar::all(0), 4);
+		object_bb = bb;
+		delete[] ptMask;
+	}
+	void Tracker::setFirstFrame(const Mat frame, const Mat ref_frame, Stats& stats)//stanley
+	{
+		first_frame = ref_frame.clone();
+		//cv::Mat matMask = cv::Mat::zeros(ref_frame.size(), CV_8UC1);
+
+		detector->detectAndCompute(ref_frame, noArray(), first_kp, first_desc);
+		stats.keypoints = (int)first_kp.size();
+
+		vector<Point2f> bb;
+
+		bb.push_back(cv::Point2f(static_cast<float>(0), static_cast<float>(0)));
+		bb.push_back(cv::Point2f(static_cast<float>(ref_frame.cols), static_cast<float>(0)));
+		bb.push_back(cv::Point2f(static_cast<float>(ref_frame.cols), static_cast<float>(ref_frame.rows)));
+		bb.push_back(cv::Point2f(static_cast<float>(0), static_cast<float>(ref_frame.rows)));
+
+
+		drawBoundingBox(first_frame, bb);
+		object_bb = bb;
+
+	}
+
+	Mat Tracker::process(const Mat frame, Stats& stats,vector<Point2f> &bb)
+	{
+		TickMeter tm;
+		vector<KeyPoint> kp;
+		Mat desc;
+		tm.start();
+		detector->detectAndCompute(frame, noArray(), kp, desc);
+		stats.keypoints = (int)kp.size();
+		vector< vector<DMatch> > matches;
+		vector<KeyPoint> matched1, matched2;
+		matcher->knnMatch(first_desc, desc, matches, 2);
+		for (unsigned i = 0; i < matches.size(); i++) {
+			if (matches[i][0].distance < nn_match_ratio * matches[i][1].distance) {
+				matched1.push_back(first_kp[matches[i][0].queryIdx]);
+				matched2.push_back(kp[matches[i][0].trainIdx]);
+			}
+		}
+		stats.matches = (int)matched1.size();
+		Mat inlier_mask, homography;
+		vector<KeyPoint> inliers1, inliers2;
+		vector<DMatch> inlier_matches;
+		if (matched1.size() >= 4) {
+			homography = findHomography(Points(matched1), Points(matched2),
+				RANSAC, ransac_thresh, inlier_mask);
+		}
+		tm.stop();
+		stats.fps = 1. / tm.getTimeSec();
+		if (matched1.size() < 4 || homography.empty()) {
+			Mat res;
+			//hconcat(first_frame, frame, res);
+			res = frame;//stanley
+
+			stats.inliers = 0;
+			stats.ratio = 0;
+			return res;
+		}
+		for (unsigned i = 0; i < matched1.size(); i++) {
+			if (inlier_mask.at<uchar>(i)) {
+				int new_i = static_cast<int>(inliers1.size());
+				inliers1.push_back(matched1[i]);
+				inliers2.push_back(matched2[i]);
+				inlier_matches.push_back(DMatch(new_i, new_i, 0));
+			}
+		}
+		stats.inliers = (int)inliers1.size();
+		stats.ratio = stats.inliers * 1.0 / stats.matches;
+		vector<Point2f> new_bb;
+		perspectiveTransform(object_bb, new_bb, homography);
+		Mat frame_with_bb = frame.clone();
+		if (stats.inliers >= bb_min_inliers) {
+			drawBoundingBox(frame_with_bb, new_bb);
+		}
+		Mat res;
+		//drawMatches(first_frame, inliers1, frame_with_bb, inliers2,inlier_matches, res,Scalar(255, 0, 0), Scalar(255, 0, 0));
+		drawKeypoints(frame_with_bb, inliers2, frame_with_bb, Scalar::all(-1), DrawMatchesFlags::DEFAULT);//stanley
+		res = frame_with_bb;//stanley
+		bb = new_bb;//return object area rectangle 
+		return res;
+	}
+}
+
+
+
+//==============
+//vision on find blue
+//==============
+
+int g_H_L = 89;
+int g_H_H = 134;
+
+int g_S_L = 95;
+int g_S_H = 224;
+
+int g_V_L = 61;
+int g_V_H = 208;
+
+int g_erode_size = 5;
+RNG g_rng(12345);
+
+
+#define MASK_WINDOW "mask"
+#define ERODE_MASK_WINDOW "erode_mask"
+#define OPENING_MASK_WINDOW "opening_mask"
+#define ORB_RESULT_WINDOW "ORB_result"
+#define DEST_WINDOW "dst"
+void on_TrackbarNumcharge(int, void*)
+{
+	g_H_H = g_H_H;
+
+}
+void on_ErodeSizeChange(int, void*)
+{
+	g_erode_size = g_erode_size;
+}
+
+struct contoursCmpY {
+	bool operator()(const Point2f &a, const Point2f &b) const {
+
+		if (abs(a.y - b.y) < 30)
+			return a.x < b.x;
+
+		return a.y < b.y;
+	}
+} contoursCmpY_;
+
+void tran2robotframe(Point2d img_cen, vector<Point2f> cam_point, vector<Point2f> &robotframe_point);
+
+DWORD WINAPI VisionOnThread(LPVOID lpParam)
+{
+	//CommandLineParser parser(argc, argv, "{@input_path |0|input path can be a camera id, like 0,1,2 or a video filename}");
+	//parser.printMessage();
+	//string input_path = parser.get<string>(0);
+	//string video_name = input_path;
+
+	//============================================
+	//==find the frame by ORB and find blue corner
+	//============================================
+	//==ORB variable==//
+	VideoCapture video_in;
+	video_in.open(0); //stanley
+	Mat src;
+	Stats stats, orb_stats;
+
+	Ptr<ORB> orb = ORB::create();
+	Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create("BruteForce-Hamming");
+
+	example::Tracker orb_tracker(orb, matcher);
+	
+	Mat Ref_Image = imread("Ref_Image.png");
+	imshow("Ref_Image", Ref_Image);//stanley
+
+	//orb_tracker.setFirstFrame(frame, bb, "ORB", stats); //org
+	orb_tracker.setFirstFrame(src, Ref_Image, stats); //stanley
+	
+	Stats orb_draw_stats;//stanley
+	Mat  orb_res, res_frame;
+	std::vector<Point2f> ObjectArea;
+	int i = 0;
+
+	//==HSV Filter variable==//
+	Mat mask = Mat::zeros(src.rows, src.cols, CV_8U); //為了濾掉其他顏色
+	Mat hsv;
+	Mat	dst;
+
+	namedWindow("src", WINDOW_AUTOSIZE);//show b
+	namedWindow(MASK_WINDOW, WINDOW_AUTOSIZE);//show mask
+
+	createTrackbar("HL", MASK_WINDOW, &g_H_L, 255, on_TrackbarNumcharge);
+	createTrackbar("HH", MASK_WINDOW, &g_H_H, 255, on_TrackbarNumcharge);
+
+	createTrackbar("SL", MASK_WINDOW, &g_S_L, 255, on_TrackbarNumcharge);
+	createTrackbar("SH", MASK_WINDOW, &g_S_H, 255, on_TrackbarNumcharge);
+
+	createTrackbar("VL", MASK_WINDOW, &g_V_L, 255, on_TrackbarNumcharge);
+	createTrackbar("VH", MASK_WINDOW, &g_V_H, 255, on_TrackbarNumcharge);
+
+	namedWindow(ERODE_MASK_WINDOW, WINDOW_AUTOSIZE);
+	createTrackbar("erode size", ERODE_MASK_WINDOW, &g_erode_size, 30, on_ErodeSizeChange);
+
+	while(1)
+	{
+		//=======//
+		//==ORB==//
+		//=======//
+		i++;
+		bool update_stats = (i % stats_update_period == 0);
+		video_in >> src;
+		// stop the program if no more images
+		if (src.empty()) break;
+
+		orb->setMaxFeatures(stats.keypoints);
+		orb_res = orb_tracker.process(src, stats, ObjectArea);
+		orb_stats += stats;
+		if (update_stats)
+		{
+			orb_draw_stats = stats;
+		}
+		//drawStatistics(orb_res, orb_draw_stats);
+		cv::imshow(ORB_RESULT_WINDOW, orb_res);
+		waitKey(10);
+		if (waitKey(1) == 27) break; //quit on ESC button
+	
+	
+		//draw a object area mask
+		cv::Point *ptMask = new cv::Point[ObjectArea.size()];
+		const Point* ptContain = { &ptMask[0] };
+		int iSize = static_cast<int>(ObjectArea.size());
+		for (size_t i = 0; i<ObjectArea.size(); i++) 
+		{
+			ptMask[i].x = static_cast<int>(ObjectArea[i].x);
+			ptMask[i].y = static_cast<int>(ObjectArea[i].y);
+		}
+		//src = src.clone();
+		cv::Mat matObjectMask = cv::Mat::zeros(src.size(), CV_8UC1);
+		cv::fillPoly(matObjectMask, &ptContain, &iSize, 1, cv::Scalar::all(255));
+
+
+		//if (ObjectArea.size() != 4) //if the boundary box is not rectangle
+		//	continue;
+
+		//=============================
+		//==find blue corner coordinate
+		//=============================
+		Point2f image_cen = Point2f(src.cols*0.5f, src.rows*0.5f);
+
+		//==transfer to HSV==//
+		Mat ObjInSrc;
+		src.copyTo(ObjInSrc, matObjectMask);
+		imshow("Obj in src", ObjInSrc);
+
+		cvtColor(ObjInSrc, hsv, CV_BGR2HSV);//轉成hsv平面
+
+		blur(hsv, hsv, Size(1, 1));
+		
+		Mat mask;
+		inRange(hsv, Scalar(g_H_L, g_S_L, g_V_L), Scalar(g_H_H, g_S_H, g_V_H), mask);  //filter out blue 二值化：h值介於20~40 & s值介於0~100 & v值介於100~255
+
+		Mat element = getStructuringElement(MORPH_RECT, Size(g_erode_size, g_erode_size));
+		Mat erode_mask;
+		erode(mask, erode_mask, element);
+
+		//dilate
+		Mat dilate_mask; //erode and dilate
+		dilate(erode_mask, dilate_mask, element);
+
+		//==canny==//
+		Mat canny_output;
+		//Mat blur_mask;
+		//blur(opening_mask,blur_mask,Size(20,20));
+		Canny(dilate_mask, canny_output, 3, 9, 3);
+
+		//==find countours==//
+		Mat contour_out;
+		vector<Vec4i> Hierarchy;
+		vector<vector<Point>> Countours;
+		findContours(canny_output, Countours, Hierarchy, RETR_EXTERNAL, CHAIN_APPROX_NONE);//RETR_EXTERNAL 只取外層 RETR_LIST取全部 CHAIN_APPROX_NONE所有輪廓點 CHAIN_APPROX_SIMPLE只取角點
+
+		char text[100];
+
+		vector<Moments> mu(Countours.size());
+		vector<Point2f> mc(Countours.size());
+
+		for (size_t i = 0; i < Countours.size(); i++)
+		{
+			mu[i] = moments(Countours[i], false); //從四個找到的角落corner中找moment
+			mc[i] = Point2f(static_cast<float>(mu[i].m10 / mu[i].m00), static_cast<float>(mu[i].m01 / mu[i].m00)); //將moment中的值轉成center
+		}
+
+		std::sort(mc.begin(), mc.end(), contoursCmpY_);
+
+		//==draw contours to dst
+		//Mat drawing=Mat::zeros(canny_output.size(),CV_8UC3);
+		Mat dst = src.clone();
+
+		//計算轉換到robot frame的座標
+		vector<Point2f> robotframe_point(Countours.size());
+		tran2robotframe(image_cen, mc, robotframe_point);
+
+
+		for (unsigned int i = 0; i<Countours.size(); i++)
+		{
+			circle(dst, mc[i], 1, Scalar(0, 0, 200), 1);//圈出center點
+
+			sprintf_s(text, "   (%3.1f,%3.1f)", robotframe_point[i].x, robotframe_point[i].y);//標註四角落座標
+			putText(dst, text, Point2f(mc[i].x, mc[i].y), FONT_HERSHEY_PLAIN, 1, CV_RGB(255, 100, 100));
+
+			//Scalar color=Scalar(g_rng.uniform(0,255),g_rng.uniform(0,255),g_rng.uniform(0,255));
+			Scalar color = Scalar(0, 255, 0);
+			drawContours(dst, Countours, i, color, 5, 8, Hierarchy, 0, Point());
+		}
+
+		//此張影像中心的紅色十字架
+		//circle(dst,image_cen,3,Scalar(0,0,200),3);
+		int cross_len = 10;
+		line(dst, Point2f(image_cen.x - cross_len, image_cen.y), Point2f(image_cen.x + cross_len, image_cen.y), Scalar(0, 0, 200), 2);  //crosshair horizontal
+		line(dst, Point2f(image_cen.x, image_cen.y - cross_len), Point2f(image_cen.x, image_cen.y + cross_len), Scalar(0, 0, 200), 2);  //crosshair horizontal
+
+		if (Countours.size() == 4)
+		{
+			line(dst, mc[0], mc[1], Scalar(0, 200, 0), 2);//將4角落點連線
+			line(dst, mc[1], mc[3], Scalar(0, 200, 0), 2);
+			line(dst, mc[3], mc[2], Scalar(0, 200, 0), 2);
+			line(dst, mc[2], mc[0], Scalar(0, 200, 0), 2);
+		}
+
+		//show
+		imshow("src", src);
+		imshow(MASK_WINDOW, mask);//show mask
+		imshow(ERODE_MASK_WINDOW, erode_mask);
+		imshow(OPENING_MASK_WINDOW, dilate_mask);
+		//imshow("blur_mask",blur_mask);
+		imshow("canny output", canny_output);
+		imshow("dst", dst);//show結果
+		waitKey(30);
+
+	}
+	orb_stats /= i - 1;
+	printStatistics("ORB", orb_stats);
+	
+	return 0;
+
+
+}
+void tran2robotframe(Point2d img_cen, vector<Point2f> cam_point, vector<Point2f> &robotframe_point)
+{
+	float mm_per_pixel = 0.75f;
+	//float mm_per_pixel=1;
+	//cam_point[0].x=img_cen.x+1; //test
+	//cam_point[0].y=img_cen.y+1;//test
+
+
+	Mat P_o_r = (Mat_<float>(2, 1) << 0, 0);//robot position in orignal frame
+	Mat P_o_i = (Mat_<float>(2, 1) << 165, -70);//image position in image frame  mm:unit
+
+												//旋轉矩陣
+	Mat R_i2r = (Mat_<float>(2, 2) << 0, 1,
+		1, 0);
+
+	for (size_t i = 0; i < cam_point.size(); i++)
+	{
+		cam_point[i].x = (float)(cam_point[i].x - img_cen.x)*mm_per_pixel;
+		cam_point[i].y = (float)(cam_point[i].y - img_cen.y)*mm_per_pixel;
+
+
+		//point in imageA 
+		Mat P_i = (Mat_<float>(2, 1) << cam_point[i].x, cam_point[i].y);
+		Mat P_r = R_i2r*P_i + (P_o_i - P_o_r);
+
+		robotframe_point[i].x = P_r.at<float>(0, 0);
+		robotframe_point[i].y = P_r.at<float>(1, 0);
+	}
+}
+
+
+void VisionOn()
+{
+	int RecvParam = 0;
+	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)VisionOnThread, (void*)&RecvParam, 0, NULL);
+
+}
+
+
+void GetObjCornerCoorFromImage()
+{
+	//mc[0] = mc[0];
+}
+
 int dxl2test()
 {
 	int giID_List[2] = {1,2};
