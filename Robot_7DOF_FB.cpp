@@ -19,15 +19,13 @@
 #include <windows.h> //QPDelay_ms使用
 #include<fstream>//寫檔使用
 
-//#pragma comment(lib,"dynamixel.lib") 
+#include <librealsense2/rs.hpp>
+#include <librealsense2/cv-helpers.hpp>
+#include <librealsense2/rsutil.h>
+
 #pragma comment(lib,"dynamixel2_win64.lib") 
 #pragma comment(lib,"opencv_world340d.lib")
-//#pragma comment(lib,"opencv_core2413d.lib")	//顯示圖片使用
-//#pragma comment(lib,"opencv_highgui2413d.lib") 
-//#pragma comment(lib,"opencv_imgproc2413d.lib")
-//#pragma comment(lib,"opencv_video2413d.lib")
-//#pragma comment(lib,"opencv_legacy2413d.lib")
-//#pragma comment(lib,"opencv_objdetect2413d.lib")
+#pragma comment(lib,"realsense2.lib")
 
 //#define F446RE_GRIPPER_EN
 //#define CHECK_CARTESIAN_PATH 
@@ -3796,7 +3794,7 @@ namespace example {
 			matcher(_matcher)
 		{}
 		void setFirstFrame(const Mat frame, vector<Point2f> bb, string title, Stats& stats);
-		void setFirstFrame(const Mat frame, const Mat ref_frame, Stats& stats);//stanley
+		void setFirstFrame(const Mat ref_frame, Stats& stats);//stanley
 
 		Mat process(const Mat frame, Stats& stats, vector<Point2f> &bb);//stanley add bb
 		Ptr<Feature2D> getDetector() {
@@ -3828,7 +3826,7 @@ namespace example {
 		object_bb = bb;
 		delete[] ptMask;
 	}
-	void Tracker::setFirstFrame(const Mat frame, const Mat ref_frame, Stats& stats)//stanley
+	void Tracker::setFirstFrame(const Mat ref_frame, Stats& stats)//stanley
 	{
 		first_frame = ref_frame.clone();
 		//cv::Mat matMask = cv::Mat::zeros(ref_frame.size(), CV_8UC1);
@@ -3915,7 +3913,6 @@ namespace example {
 //==============
 //vision on find blue
 //==============
-
 int g_H_L = 89;
 int g_H_H = 134;
 
@@ -3954,7 +3951,76 @@ struct contoursCmpY {
 	}
 } contoursCmpY_;
 
+Mat DH_HomoTran(double d, double theta, double a, double alpha)
+{
+	Mat Metrix_r = (Mat_<double>(4, 4) << cos(theta), -sin(theta)*cos(alpha), sin(theta)*sin(alpha), a*cos(theta),
+		sin(theta), cos(theta)*cos(alpha), -cos(theta)*sin(alpha), a*sin(theta),
+		0, sin(alpha), cos(alpha), d,
+		0, 0, 0, 1);
+
+	return Metrix_r;
+
+}
+#define DEF_PI (3.1415926F)
+void calculate_obj(double *Image_coor, double *Robot_coor)
+{
+	double thetaH = -1.0 / 10.0 * DEF_PI;
+	//double LH1 = 140.0*0.001;//m
+	//double LH2 = 20.0*0.001;//m
+	//double LH3 = 10.0*0.001;//m
+
+	double LH1 = 100.0*0.001;//m
+	double LH2 = 0.0*0.001;//m
+	double LH3 = 0.0*0.001;//m
+
+
+	Mat mImage_coor = (Mat_<double>(4, 1) << Image_coor[0],
+		Image_coor[1],
+		Image_coor[2],
+		1);
+
+
+	const int PNUM = 5;
+	double ALPHA[PNUM] = { 0,0,0.5*DEF_PI,-0.5*DEF_PI,-0.5*DEF_PI };   //DH中的alpha  沿著x轉的角度
+	double THETHA_HOME[PNUM] = { 0,0,0,0,-0.5*DEF_PI }; //DH中的theta  沿著Z轉的角度
+	double d_Axis_j[PNUM] = { LH1,0,0,0,0 }; //軸向距d
+	double a_Radia_j[PNUM] = { 0,LH2,0,LH3,0 }; //徑向距a
+	double JointTheta_j[PNUM] = { 0,0,thetaH,0,0 };
+	double Theta_j[PNUM] = { 0 };
+
+	Theta_j[0] = THETHA_HOME[0];
+	Theta_j[1] = THETHA_HOME[1] + JointTheta_j[0]; //座標90度旋轉 + 各軸旋轉角度
+	Theta_j[2] = THETHA_HOME[2] + JointTheta_j[1];
+	Theta_j[3] = THETHA_HOME[3] + JointTheta_j[2];
+	Theta_j[4] = THETHA_HOME[4] + JointTheta_j[3];
+
+
+	Mat T0_1 = DH_HomoTran(d_Axis_j[0], Theta_j[0], a_Radia_j[0], ALPHA[0]);
+	Mat T1_2 = DH_HomoTran(d_Axis_j[1], Theta_j[1], a_Radia_j[1], ALPHA[1]);
+	Mat T2_3 = DH_HomoTran(d_Axis_j[2], Theta_j[2], a_Radia_j[2], ALPHA[2]);
+	Mat T3_4 = DH_HomoTran(d_Axis_j[3], Theta_j[3], a_Radia_j[3], ALPHA[3]);
+	Mat T4_5 = DH_HomoTran(d_Axis_j[4], Theta_j[4], a_Radia_j[4], ALPHA[4]);
+
+	Mat T0_2 = T0_1*T1_2;
+	Mat T0_3 = T0_2*T2_3;
+	Mat T0_4 = T0_3*T3_4;
+	Mat T0_5 = T0_4*T4_5;
+
+	Mat mRobot_coor = T0_5*mImage_coor;
+	double* pmRobot_coor = mRobot_coor.ptr<double>(0);
+	Robot_coor[0] = pmRobot_coor[0];
+	Robot_coor[1] = pmRobot_coor[1];
+	Robot_coor[2] = pmRobot_coor[2];
+}
+
+
 void tran2robotframe(Point2d img_cen, vector<Point2f> cam_point, vector<Point2f> &robotframe_point);
+#define depth_window_name "depth"
+#define rgb_window_name "rgb"
+#define depth_filter_window_name "depth_filter"
+
+Point3f gRobot_coor_rightlow = { 0 };
+Point3f gRobot_coor_leftlow = { 0 };
 
 DWORD WINAPI VisionOnThread(LPVOID lpParam)
 {
@@ -3966,10 +4032,29 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 	//============================================
 	//==find the frame by ORB and find blue corner
 	//============================================
+	//==realsense variable==//
+	rs2::colorizer color_map;
+	namedWindow(depth_window_name, WINDOW_AUTOSIZE);
+	namedWindow(rgb_window_name, WINDOW_AUTOSIZE);
+	//setMouseCallback(rgb_window_name, onMouseDeproject, 0);
+
+	rs2::align align_to(RS2_STREAM_COLOR);
+
+	// Declare RealSense pipeline, encapsulating the actual device and sensors
+	rs2::config c;
+	c.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 30);
+	c.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 30);
+
+	rs2::pipeline pipe;
+	auto PipeProfile = pipe.start(c);
+	auto depth_stream = PipeProfile.get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>();
+	//auto color_stream = PipeProfile.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>();
+	struct  rs2_intrinsics 	mRsDepthIntrinsic = depth_stream.get_intrinsics();
+
 	//==ORB variable==//
-	VideoCapture video_in;
-	video_in.open(0); //stanley
-	Mat src;
+	//VideoCapture video_in;
+	//video_in.open(0); //stanley
+	Mat color_mat, depth_mat;
 	Stats stats, orb_stats;
 
 	Ptr<ORB> orb = ORB::create();
@@ -3981,7 +4066,7 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 	imshow("Ref_Image", Ref_Image);//stanley
 
 	//orb_tracker.setFirstFrame(frame, bb, "ORB", stats); //org
-	orb_tracker.setFirstFrame(src, Ref_Image, stats); //stanley
+	orb_tracker.setFirstFrame(Ref_Image, stats); //get keypoints and keypoint size in the reference image  stanley
 	
 	Stats orb_draw_stats;//stanley
 	Mat  orb_res, res_frame;
@@ -3989,11 +4074,11 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 	int i = 0;
 
 	//==HSV Filter variable==//
-	Mat mask = Mat::zeros(src.rows, src.cols, CV_8U); //為了濾掉其他顏色
+	Mat mask = Mat::zeros(color_mat.rows, color_mat.cols, CV_8U); //為了濾掉其他顏色
 	Mat hsv;
 	Mat	dst;
 
-	namedWindow("src", WINDOW_AUTOSIZE);//show b
+	namedWindow("color_mat", WINDOW_AUTOSIZE);//show b
 	namedWindow(MASK_WINDOW, WINDOW_AUTOSIZE);//show mask
 
 	createTrackbar("HL", MASK_WINDOW, &g_H_L, 255, on_TrackbarNumcharge);
@@ -4008,67 +4093,68 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 	namedWindow(ERODE_MASK_WINDOW, WINDOW_AUTOSIZE);
 	createTrackbar("erode size", ERODE_MASK_WINDOW, &g_erode_size, 30, on_ErodeSizeChange);
 
-	while(1)
+	while (1)
 	{
+		//initial first fram to rgb
+		rs2::frameset data = pipe.wait_for_frames();
+		rs2::frameset aligned_set = align_to.process(data);
+		depth_mat = depth_frame_to_meters(pipe, aligned_set.get_depth_frame());
+		color_mat = frame_to_mat(aligned_set.get_color_frame());
+
 		//=======//
 		//==ORB==//
 		//=======//
 		i++;
 		bool update_stats = (i % stats_update_period == 0);
-		video_in >> src;
-		// stop the program if no more images
-		if (src.empty()) break;
+		
+		imshow("color_mat", color_mat);// stop the program if no more images
+		if (color_mat.empty()) break;
 
 		orb->setMaxFeatures(stats.keypoints);
-		orb_res = orb_tracker.process(src, stats, ObjectArea);
+		orb_res = orb_tracker.process(color_mat, stats, ObjectArea);//draw rectangle and find the ObjectArea(boundarybox). return a orb_res(Mat)
 		orb_stats += stats;
 		if (update_stats)
 		{
 			orb_draw_stats = stats;
 		}
 		//drawStatistics(orb_res, orb_draw_stats);
-		cv::imshow(ORB_RESULT_WINDOW, orb_res);
+		cv::imshow(ORB_RESULT_WINDOW, orb_res);//draw a mat of the ref image in color image  
 		waitKey(10);
 		if (waitKey(1) == 27) break; //quit on ESC button
-	
-	
+
 		//draw a object area mask
-		cv::Point *ptMask = new cv::Point[ObjectArea.size()];
+		cv::Point *ptMask = new cv::Point[ObjectArea.size()]; //point to the set of ObjectArea corner and be the mask
 		const Point* ptContain = { &ptMask[0] };
 		int iSize = static_cast<int>(ObjectArea.size());
-		for (size_t i = 0; i<ObjectArea.size(); i++) 
+		for (size_t i = 0; i < ObjectArea.size(); i++)
 		{
 			ptMask[i].x = static_cast<int>(ObjectArea[i].x);
 			ptMask[i].y = static_cast<int>(ObjectArea[i].y);
 		}
-		//src = src.clone();
-		cv::Mat matObjectMask = cv::Mat::zeros(src.size(), CV_8UC1);
-		cv::fillPoly(matObjectMask, &ptContain, &iSize, 1, cv::Scalar::all(255));
-
-
-		//if (ObjectArea.size() != 4) //if the boundary box is not rectangle
-		//	continue;
+		
+		cv::Mat matObjectMask = cv::Mat::zeros(color_mat.size(), CV_8UC1);
+		cv::fillPoly(matObjectMask, &ptContain, &iSize, 1, cv::Scalar::all(255));//set the objectMask as a while color
 
 		//=============================
 		//==find blue corner coordinate
 		//=============================
-		Point2f image_cen = Point2f(src.cols*0.5f, src.rows*0.5f);
+		Point2f image_cen = Point2f(color_mat.cols*0.5f, color_mat.rows*0.5f);
 
 		//==transfer to HSV==//
-		Mat ObjInSrc;
-		src.copyTo(ObjInSrc, matObjectMask);
+		Mat ObjInSrc; //object in the source color mat
+		color_mat.copyTo(ObjInSrc, matObjectMask);//just want the object area. The area ouside the object is black. 
 		imshow("Obj in src", ObjInSrc);
 
-		cvtColor(ObjInSrc, hsv, CV_BGR2HSV);//轉成hsv平面
+		cvtColor(ObjInSrc, hsv, CV_BGR2HSV);//transfer to HSV
 
 		blur(hsv, hsv, Size(1, 1));
-		
-		Mat mask;
-		inRange(hsv, Scalar(g_H_L, g_S_L, g_V_L), Scalar(g_H_H, g_S_H, g_V_H), mask);  //filter out blue 二值化：h值介於20~40 & s值介於0~100 & v值介於100~255
+
+		Mat hsv_mask;
+		inRange(hsv, Scalar(g_H_L, g_S_L, g_V_L), Scalar(g_H_H, g_S_H, g_V_H), hsv_mask);  //filter out blue 二值化：h值介於20~40 & s值介於0~100 & v值介於100~255
 
 		Mat element = getStructuringElement(MORPH_RECT, Size(g_erode_size, g_erode_size));
 		Mat erode_mask;
-		erode(mask, erode_mask, element);
+		erode(hsv_mask, erode_mask, element);
 
 		//dilate
 		Mat dilate_mask; //erode and dilate
@@ -4086,39 +4172,67 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 		vector<vector<Point>> Countours;
 		findContours(canny_output, Countours, Hierarchy, RETR_EXTERNAL, CHAIN_APPROX_NONE);//RETR_EXTERNAL 只取外層 RETR_LIST取全部 CHAIN_APPROX_NONE所有輪廓點 CHAIN_APPROX_SIMPLE只取角點
 
-		char text[100];
-
+		//==find corner centroid by moment==//
 		vector<Moments> mu(Countours.size());
 		vector<Point2f> mc(Countours.size());
 
 		for (size_t i = 0; i < Countours.size(); i++)
 		{
-			mu[i] = moments(Countours[i], false); //從四個找到的角落corner中找moment
+			mu[i] = moments(Countours[i], false); 
 			mc[i] = Point2f(static_cast<float>(mu[i].m10 / mu[i].m00), static_cast<float>(mu[i].m01 / mu[i].m00)); //將moment中的值轉成center
 		}
 
 		std::sort(mc.begin(), mc.end(), contoursCmpY_);
 
+		Point2f leftlow = Point2f(mc[2].x, mc[2].y); //left low corner
+		Point2f rightlow = Point2f(mc[3].x, mc[3].y);//right low corner
+
+		double Cam_coor_leftlow[3] = { 0 };
+		double Cam_coor_rightlow[3] = { 0 };
+
+		//==change to camera coordinate==//
+		double pixel_leftlow[2] = { leftlow.x, leftlow.y };
+		double depth = depth_mat.at<double>(leftlow.y, leftlow.x);
+		rs2_deproject_pixel_to_point(Cam_coor_leftlow, &mRsDepthIntrinsic, pixel_leftlow, depth);
+
+		double pixel_rightlow[2] = { rightlow.x, rightlow.y };
+		depth = depth_mat.at<double>(leftlow.y, leftlow.x);
+		rs2_deproject_pixel_to_point(Cam_coor_rightlow, &mRsDepthIntrinsic, pixel_rightlow, depth);
+
+		//==change to robot_coordinate==//
+		double Robot_coor_leftlow[3] = { 0 };
+		double Robot_coor_rightlow[3] = { 0 };
+		calculate_obj(Cam_coor_leftlow, Robot_coor_leftlow);
+		calculate_obj(Cam_coor_rightlow, Robot_coor_rightlow);
+
+		static bool already_set_corner_coor = false;
+
+		if (already_set_corner_coor == false)
+		{
+			gRobot_coor_rightlow = Point3f(Robot_coor_rightlow[DEF_X], Robot_coor_rightlow[DEF_Y], Robot_coor_rightlow[DEF_Z]);
+			gRobot_coor_rightlow = Point3f(Robot_coor_rightlow[DEF_X], Robot_coor_rightlow[DEF_Y], Robot_coor_rightlow[DEF_Z]);
+			already_set_corner_coor = true;
+		}
+
 		//==draw contours to dst
-		//Mat drawing=Mat::zeros(canny_output.size(),CV_8UC3);
-		Mat dst = src.clone();
+		Mat dst = color_mat.clone();
 
-		//計算轉換到robot frame的座標
-		vector<Point2f> robotframe_point(Countours.size());
-		tran2robotframe(image_cen, mc, robotframe_point);
-
-
+		//==draw center point==//
 		for (unsigned int i = 0; i<Countours.size(); i++)
 		{
 			circle(dst, mc[i], 1, Scalar(0, 0, 200), 1);//圈出center點
-
-			sprintf_s(text, "   (%3.1f,%3.1f)", robotframe_point[i].x, robotframe_point[i].y);//標註四角落座標
-			putText(dst, text, Point2f(mc[i].x, mc[i].y), FONT_HERSHEY_PLAIN, 1, CV_RGB(255, 100, 100));
-
 			//Scalar color=Scalar(g_rng.uniform(0,255),g_rng.uniform(0,255),g_rng.uniform(0,255));
 			Scalar color = Scalar(0, 255, 0);
 			drawContours(dst, Countours, i, color, 5, 8, Hierarchy, 0, Point());
 		}
+
+		//==print the coordinate in left low corner and right low corner==//
+		char text[100];
+		sprintf_s(text, "   (%3.1f,%3.1f,%3.1f)", Robot_coor_rightlow[DEF_X], Robot_coor_rightlow[DEF_Y], Robot_coor_rightlow[DEF_Z]);//標註四角落座標
+		putText(dst, text, Point2f(rightlow.x, rightlow.y), FONT_HERSHEY_PLAIN, 1, CV_RGB(255, 100, 100));
+
+		sprintf_s(text, "   (%3.1f,%3.1f,%3.1f)", Robot_coor_leftlow[DEF_X], Robot_coor_leftlow[DEF_Y], Robot_coor_leftlow[DEF_Z]);//標註四角落座標
+		putText(dst, text, Point2f(leftlow.x, leftlow.y), FONT_HERSHEY_PLAIN, 1, CV_RGB(255, 100, 100));
 
 		//此張影像中心的紅色十字架
 		//circle(dst,image_cen,3,Scalar(0,0,200),3);
@@ -4135,18 +4249,17 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 		}
 
 		//show
-		imshow("src", src);
+		imshow("color_mat", color_mat);
 		imshow(MASK_WINDOW, mask);//show mask
 		imshow(ERODE_MASK_WINDOW, erode_mask);
 		imshow(OPENING_MASK_WINDOW, dilate_mask);
-		//imshow("blur_mask",blur_mask);
 		imshow("canny output", canny_output);
 		imshow("dst", dst);//show結果
 		waitKey(30);
 
 	}
-	orb_stats /= i - 1;
-	printStatistics("ORB", orb_stats);
+	//orb_stats /= i - 1;
+	//printStatistics("ORB", orb_stats);
 	
 	return 0;
 
