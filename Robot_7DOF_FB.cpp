@@ -3857,14 +3857,14 @@ namespace example {
 		stats.keypoints = (int)kp.size();
 		vector< vector<DMatch> > matches;
 		vector<KeyPoint> matched1, matched2;
-		matcher->knnMatch(first_desc, desc, matches, 2);
+		matcher->knnMatch(first_desc, desc, matches, 2);//first description vs descreption
 		for (unsigned i = 0; i < matches.size(); i++) {
 			if (matches[i][0].distance < nn_match_ratio * matches[i][1].distance) {
-				matched1.push_back(first_kp[matches[i][0].queryIdx]);
-				matched2.push_back(kp[matches[i][0].trainIdx]);
+				matched1.push_back(first_kp[matches[i][0].queryIdx]);	//put reference ok query index into mached1 
+				matched2.push_back(kp[matches[i][0].trainIdx]);			//put now ok train index into mached2
 			}
 		}
-		stats.matches = (int)matched1.size();
+		stats.matches = (int)matched1.size();//the number of matches between reference and current image
 		Mat inlier_mask, homography;
 		vector<KeyPoint> inliers1, inliers2;
 		vector<DMatch> inlier_matches;
@@ -3876,8 +3876,8 @@ namespace example {
 		stats.fps = 1. / tm.getTimeSec();
 		if (matched1.size() < 4 || homography.empty()) {
 			Mat res;
-			//hconcat(first_frame, frame, res);
-			res = frame;//stanley
+			hconcat(first_frame, frame, res);
+			//res = frame;//stanley
 
 			stats.inliers = 0;
 			stats.ratio = 0;
@@ -3894,15 +3894,15 @@ namespace example {
 		stats.inliers = (int)inliers1.size();
 		stats.ratio = stats.inliers * 1.0 / stats.matches;
 		vector<Point2f> new_bb;
-		perspectiveTransform(object_bb, new_bb, homography);
+		perspectiveTransform(object_bb, new_bb, homography);//transfer original object_bb to new_bb by homography
 		Mat frame_with_bb = frame.clone();
 		if (stats.inliers >= bb_min_inliers) {
 			drawBoundingBox(frame_with_bb, new_bb);
 		}
 		Mat res;
-		//drawMatches(first_frame, inliers1, frame_with_bb, inliers2,inlier_matches, res,Scalar(255, 0, 0), Scalar(255, 0, 0));
-		drawKeypoints(frame_with_bb, inliers2, frame_with_bb, Scalar::all(-1), DrawMatchesFlags::DEFAULT);//stanley
-		res = frame_with_bb;//stanley
+		drawMatches(first_frame, inliers1, frame_with_bb, inliers2,inlier_matches, res,Scalar(255, 0, 0), Scalar(255, 0, 0));
+		//drawKeypoints(frame_with_bb, inliers2, frame_with_bb, Scalar::all(-1), DrawMatchesFlags::DEFAULT);//stanley
+		//res = frame_with_bb;//stanley
 		bb = new_bb;//return object area rectangle 
 		return res;
 	}
@@ -4111,7 +4111,7 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 		if (color_mat.empty()) break;
 
 		orb->setMaxFeatures(stats.keypoints);
-		orb_res = orb_tracker.process(color_mat, stats, ObjectArea);//draw rectangle and find the ObjectArea(boundarybox). return a orb_res(Mat)
+		orb_res = orb_tracker.process(color_mat, stats, ObjectArea);//draw rectangle and find the ObjectArea(boundarybox). return a orb_res(reference + image)
 		orb_stats += stats;
 		if (update_stats)
 		{
