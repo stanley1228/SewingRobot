@@ -4015,15 +4015,45 @@ void calculate_obj(double *Image_coor, double *Robot_coor)
 
 
 void tran2robotframe(Point2d img_cen, vector<Point2f> cam_point, vector<Point2f> &robotframe_point);
-#define depth_window_name "depth"
+#define depth_color_window_name "depth_color"
 #define rgb_window_name "rgb"
 #define depth_filter_window_name "depth_filter"
+#define object_in_src_window_name "Object in src"
 
 Point3f gRobot_coor_rightlow = { 0 };
 Point3f gRobot_coor_leftlow = { 0 };
 
+void CaptureRefImage()
+{
+	rs2::colorizer color_map;
+	rs2::config c;
+	c.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 30);
+	rs2::pipeline pipe;
+	auto PipeProfile = pipe.start(c);
+
+	rs2::frameset frames;
+	for(int i=0;i<20;i++)
+		frames = pipe.wait_for_frames();
+	//rs2::frameset aligned_set = align_to.process(data);
+	//depth_mat = depth_frame_to_meters(pipe, aligned_set.get_depth_frame());
+	Mat Ref_Image;
+	Mat ColorImage = frame_to_mat(frames.get_color_frame());
+
+	namedWindow("RefImage2", WINDOW_AUTOSIZE);
+	cv::Rect uBox = cv::selectROI("RefImage2", ColorImage);
+	
+	Ref_Image = ColorImage(uBox).clone();//stanley
+	imshow("Ref_Image2", Ref_Image);
+	waitKey(10);
+	imwrite("Ref_Image2.png", Ref_Image);
+
+}
+
 DWORD WINAPI VisionOnThread(LPVOID lpParam)
 {
+	//CaptureRefImage();
+	//return 0;
+
 	//CommandLineParser parser(argc, argv, "{@input_path |0|input path can be a camera id, like 0,1,2 or a video filename}");
 	//parser.printMessage();
 	//string input_path = parser.get<string>(0);
@@ -4034,7 +4064,7 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 	//============================================
 	//==realsense variable==//
 	rs2::colorizer color_map;
-	namedWindow(depth_window_name, WINDOW_AUTOSIZE);
+	namedWindow(depth_color_window_name, WINDOW_AUTOSIZE);
 	namedWindow(rgb_window_name, WINDOW_AUTOSIZE);
 	//setMouseCallback(rgb_window_name, onMouseDeproject, 0);
 
@@ -4100,6 +4130,7 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 		rs2::frameset aligned_set = align_to.process(data);
 		depth_mat = depth_frame_to_meters(pipe, aligned_set.get_depth_frame());
 		color_mat = frame_to_mat(aligned_set.get_color_frame());
+		rs2::frame depth_frame = color_map(aligned_set.get_depth_frame());
 
 		//=======//
 		//==ORB==//
@@ -4143,7 +4174,7 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 		//==transfer to HSV==//
 		Mat ObjInSrc; //object in the source color mat
 		color_mat.copyTo(ObjInSrc, matObjectMask);//just want the object area. The area ouside the object is black. 
-		imshow("Obj in src", ObjInSrc);
+		imshow(object_in_src_window_name, ObjInSrc);
 
 		cvtColor(ObjInSrc, hsv, CV_BGR2HSV);//transfer to HSV
 
@@ -4189,6 +4220,12 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 
 		double Cam_coor_leftlow[3] = { 0 };
 		double Cam_coor_rightlow[3] = { 0 };
+		
+		//==show depth mat==//
+		const int w = depth_frame.as<rs2::video_frame>().get_width();
+		const int h = depth_frame.as<rs2::video_frame>().get_height();
+		Mat depth_color_mat(Size(w, h), CV_8UC3, (void*)depth_frame.get_data(), Mat::AUTO_STEP);
+		imshow(depth_color_window_name, depth_color_mat);
 
 		//==change to camera coordinate==//
 		double pixel_leftlow[2] = { leftlow.x, leftlow.y };
@@ -4215,7 +4252,7 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 		}
 
 		//==draw contours to dst
-		Mat dst = color_mat.clone();
+		Mat dst = ObjInSrc.clone();
 
 		//==draw center point==//
 		for (unsigned int i = 0; i<Countours.size(); i++)
@@ -4229,10 +4266,10 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 		//==print the coordinate in left low corner and right low corner==//
 		char text[100];
 		sprintf_s(text, "   (%3.1f,%3.1f,%3.1f)", Robot_coor_rightlow[DEF_X], Robot_coor_rightlow[DEF_Y], Robot_coor_rightlow[DEF_Z]);//標註四角落座標
-		putText(dst, text, Point2f(rightlow.x, rightlow.y), FONT_HERSHEY_PLAIN, 1, CV_RGB(255, 100, 100));
+		putText(dst, text, Point2f(rightlow.x, rightlow.y), FONT_HERSHEY_PLAIN, 1, CV_RGB(255, 100, 100),2,8,false);
 
 		sprintf_s(text, "   (%3.1f,%3.1f,%3.1f)", Robot_coor_leftlow[DEF_X], Robot_coor_leftlow[DEF_Y], Robot_coor_leftlow[DEF_Z]);//標註四角落座標
-		putText(dst, text, Point2f(leftlow.x, leftlow.y), FONT_HERSHEY_PLAIN, 1, CV_RGB(255, 100, 100));
+		putText(dst, text, Point2f(leftlow.x, leftlow.y), FONT_HERSHEY_PLAIN, 1, CV_RGB(255, 100, 100), 2, 8, false);
 
 		//此張影像中心的紅色十字架
 		//circle(dst,image_cen,3,Scalar(0,0,200),3);
@@ -4250,7 +4287,7 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 
 		//show
 		imshow("color_mat", color_mat);
-		imshow(MASK_WINDOW, mask);//show mask
+		//imshow(MASK_WINDOW, mask);//show mask
 		imshow(ERODE_MASK_WINDOW, erode_mask);
 		imshow(OPENING_MASK_WINDOW, dilate_mask);
 		imshow("canny output", canny_output);
