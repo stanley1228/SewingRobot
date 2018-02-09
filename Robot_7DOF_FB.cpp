@@ -3783,7 +3783,7 @@ void testcv()
 const double akaze_thresh = 3e-4; // AKAZE detection threshold set to locate about 1000 keypoints
 const double ransac_thresh = 2.5f; // RANSAC inlier threshold
 const double nn_match_ratio = 0.8f; // Nearest-neighbour matching ratio
-const int bb_min_inliers = 10; // Minimal number of inliers to draw bounding box
+const int bb_min_inliers = 15; // Minimal number of inliers to draw bounding box
 const int stats_update_period = 10; // On-screen statistics are updated every 10 frames
 namespace example {
 	class Tracker
@@ -3792,7 +3792,9 @@ namespace example {
 		Tracker(Ptr<Feature2D> _detector, Ptr<DescriptorMatcher> _matcher) :
 			detector(_detector),
 			matcher(_matcher)
-		{}
+		{
+			bObjFound = false;
+		}
 		void setFirstFrame(const Mat frame, vector<Point2f> bb, string title, Stats& stats);
 		void setFirstFrame(const Mat ref_frame, Stats& stats);//stanley
 
@@ -3800,6 +3802,7 @@ namespace example {
 		Ptr<Feature2D> getDetector() {
 			return detector;
 		}
+		bool bObjFound;
 	protected:
 		Ptr<Feature2D> detector;
 		Ptr<DescriptorMatcher> matcher;
@@ -3896,8 +3899,14 @@ namespace example {
 		vector<Point2f> new_bb;
 		perspectiveTransform(object_bb, new_bb, homography);//transfer original object_bb to new_bb by homography
 		Mat frame_with_bb = frame.clone();
-		if (stats.inliers >= bb_min_inliers) {
+		if (stats.inliers >= bb_min_inliers) 
+		{
 			drawBoundingBox(frame_with_bb, new_bb);
+			bObjFound = true;
+		}
+		else
+		{
+			bObjFound = false;
 		}
 		Mat res;
 		drawMatches(first_frame, inliers1, frame_with_bb, inliers2,inlier_matches, res,Scalar(255, 0, 0), Scalar(255, 0, 0));
@@ -3916,7 +3925,7 @@ namespace example {
 int g_H_L = 89;
 int g_H_H = 134;
 
-int g_S_L = 95;
+int g_S_L = 85;
 int g_S_H = 224;
 
 int g_V_L = 61;
@@ -3926,14 +3935,14 @@ int g_erode_size = 5;
 RNG g_rng(12345);
 
 #define COLOR_MAT_WINDOW "color_mat"
-#define MASK_WINDOW "mask"
+#define HSV_MASK_WINDOW "hsv mask"
 #define ERODE_MASK_WINDOW "erode_mask"
 #define OPENING_MASK_WINDOW "opening_mask"
 #define ORB_RESULT_WINDOW "ORB_result"
 #define AKAZE_RESULT_WINDOW "AKAZE result"
 #define DEST_WINDOW "dst"
 #define CANNY_OUTPUT_WINDOW "canny output"
-#define DST_WINDOW "dst"
+#define OBJECT_IN_SRC_WINDOW "object in source"
 
 void on_TrackbarNumcharge(int, void*)
 {
@@ -3948,12 +3957,30 @@ void on_ErodeSizeChange(int, void*)
 struct contoursCmpY {
 	bool operator()(const Point2f &a, const Point2f &b) const {
 
-		if (abs(a.y - b.y) < 30)
+		if (abs(a.y - b.y) < 60)
 			return a.x < b.x;
 
 		return a.y < b.y;
 	}
 } contoursCmpY_;
+
+struct contoursCmpX {
+	bool operator()(const Point2f &a, const Point2f &b) const {
+
+		if (abs(a.x - b.x) < 100)
+			return a.y < b.y;
+
+		return a.x < b.x;
+	}
+} contoursCmpX_;
+
+struct CmpY {
+	bool operator()(const Point2f &a, const Point2f &b) const {
+		return a.y < b.y;
+	}
+} CmpY_;
+
+
 
 Mat DH_HomoTran(double d, double theta, double a, double alpha)
 {
@@ -3968,14 +3995,15 @@ Mat DH_HomoTran(double d, double theta, double a, double alpha)
 #define DEF_PI (3.1415926F)
 void calculate_obj(double *Image_coor, double *Robot_coor)
 {
-	double thetaH = -1.0 / 10.0 * DEF_PI;
+
 	//double LH1 = 140.0*0.001;//m
 	//double LH2 = 20.0*0.001;//m
 	//double LH3 = 10.0*0.001;//m
 
-	double LH1 = 100.0*0.001;//m
-	double LH2 = 0.0*0.001;//m
-	double LH3 = 0.0*0.001;//m
+	double thetaH = -50.0 / 180 * DEF_PI; //for sewing
+	double LH1 = 150.0*0.001;//m
+	double LH2 = 40.0*0.001;//m
+	double LH3 = 15.0*0.001;//m
 
 
 	Mat mImage_coor = (Mat_<double>(4, 1) << Image_coor[0],
@@ -4019,15 +4047,46 @@ void calculate_obj(double *Image_coor, double *Robot_coor)
 
 
 void tran2robotframe(Point2d img_cen, vector<Point2f> cam_point, vector<Point2f> &robotframe_point);
-#define depth_window_name "depth"
-#define rgb_window_name "rgb"
-#define depth_filter_window_name "depth_filter"
 
 Point3f gRobot_coor_rightlow = { 0 };
 Point3f gRobot_coor_leftlow = { 0 };
 
+
+void CaptureRefImage() 
+{
+	rs2::config c;
+	c.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 30);
+
+	rs2::pipeline pipe;
+	auto PipeProfile = pipe.start(c);
+	Mat color_mat;
+	while (waitKey(1) < 1)
+	{
+		rs2::frameset data = pipe.wait_for_frames();
+		color_mat = frame_to_mat(data.get_color_frame());
+		imshow("color_mat", color_mat);
+	}
+	
+	vector<Point2f> bb;
+	cv::Rect uBox = cv::selectROI("color_mat", color_mat);
+	bb.push_back(cv::Point2f(static_cast<float>(uBox.x), static_cast<float>(uBox.y)));
+	bb.push_back(cv::Point2f(static_cast<float>(uBox.x + uBox.width), static_cast<float>(uBox.y)));
+	bb.push_back(cv::Point2f(static_cast<float>(uBox.x + uBox.width), static_cast<float>(uBox.y + uBox.height)));
+	bb.push_back(cv::Point2f(static_cast<float>(uBox.x), static_cast<float>(uBox.y + uBox.height)));
+
+	//==stanley==//
+	Mat Ref_Image= color_mat(uBox).clone();//stanley
+	//imshow("Ref_Image", Ref_Image);//stanley
+	imwrite("Ref_Image_2.png", Ref_Image);
+
+	//auto depth_stream = PipeProfile.get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>();
+	
+
+}
 DWORD WINAPI VisionOnThread(LPVOID lpParam)
 {
+	//CaptureRefImage();
+	//return 0;
 	//CommandLineParser parser(argc, argv, "{@input_path |0|input path can be a camera id, like 0,1,2 or a video filename}");
 	//parser.printMessage();
 	//string input_path = parser.get<string>(0);
@@ -4038,8 +4097,6 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 	//============================================
 	//==realsense variable==//
 	rs2::colorizer color_map;
-	namedWindow(depth_window_name, WINDOW_AUTOSIZE);
-	namedWindow(rgb_window_name, WINDOW_AUTOSIZE);
 	//setMouseCallback(rgb_window_name, onMouseDeproject, 0);
 
 	rs2::align align_to(RS2_STREAM_COLOR);
@@ -4054,64 +4111,74 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 	auto depth_stream = PipeProfile.get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>();
 	//auto color_stream = PipeProfile.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>();
 	struct  rs2_intrinsics 	mRsDepthIntrinsic = depth_stream.get_intrinsics();
+	mRsDepthIntrinsic.fx = 600;
+	mRsDepthIntrinsic.fy = 600;
 	Mat color_mat, depth_mat;
 	std::vector<Point2f> ObjectArea;
 	int i = 0;
 	
 	//==ORB variable==//
-	//Stats stats, orb_stats;
+	Stats stats, orb_stats;
 
-	//Ptr<ORB> orb = ORB::create();
-	//Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create("BruteForce-Hamming");
+	Ptr<ORB> orb = ORB::create();
+	Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create("BruteForce-Hamming");
 
-	//example::Tracker orb_tracker(orb, matcher);
-	//
-	//Mat Ref_Image = imread("Ref_Image.png");
-	//imshow("Ref_Image", Ref_Image);//stanley
+	example::Tracker orb_tracker(orb, matcher);
+	
+	Mat Ref_Image = imread("Ref_Image.png");
 
-	////orb_tracker.setFirstFrame(frame, bb, "ORB", stats); //org
-	//orb_tracker.setFirstFrame(Ref_Image, stats); //get keypoints and keypoint size in the reference image  stanley
-	//
-	//Stats orb_draw_stats;//stanley
-	//Mat  orb_res, res_frame;
+	//orb_tracker.setFirstFrame(frame, bb, "ORB", stats); //org
+	orb_tracker.setFirstFrame(Ref_Image, stats); //get keypoints and keypoint size in the reference image  stanley
+	
+	Stats orb_draw_stats;//stanley
+	Mat  orb_res, res_frame;
 
 	//==AKAZE variable==//
-	Stats stats, akaze_stats;
+	//Stats stats, akaze_stats;
 
-	Ptr<AKAZE> akaze = AKAZE::create();
-	akaze->setThreshold(akaze_thresh);
-	Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create("BruteForce-Hamming");
-	example::Tracker akaze_tracker(akaze, matcher);
-	Mat akaze_res, res_frame;
-	Stats akaze_draw_stats;
+	//Ptr<AKAZE> akaze = AKAZE::create();
+	//akaze->setThreshold(akaze_thresh);
+	//Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create("BruteForce-Hamming");
+	//example::Tracker akaze_tracker(akaze, matcher);
+	//Mat akaze_res, res_frame;
+	//Stats akaze_draw_stats;
 
+	////==read reference image==//
+	//Mat Ref_Image = imread("Ref_Image.png");
+	////imshow("Ref_Image", Ref_Image);//stanley
 
-	//==read reference image==//
-	Mat Ref_Image = imread("Ref_Image.png");
-	imshow("Ref_Image", Ref_Image);//stanley
+	//akaze_tracker.setFirstFrame(Ref_Image, stats); //get keypoints and keypoint size in the reference image  stanley
 
 	//==HSV Filter variable==//
-	Mat mask = Mat::zeros(color_mat.rows, color_mat.cols, CV_8U); //為了濾掉其他顏色
+	//Mat mask = Mat::zeros(color_mat.rows, color_mat.cols, CV_8U); //為了濾掉其他顏色
 	Mat hsv;
 	Mat	dst;
 
-	namedWindow("color_mat", WINDOW_AUTOSIZE);//show b
-	namedWindow(MASK_WINDOW, WINDOW_AUTOSIZE);//show mask
+	//namedWindow(COLOR_MAT_WINDOW, WINDOW_AUTOSIZE);
+	namedWindow(HSV_MASK_WINDOW, WINDOW_AUTOSIZE);
 
-	createTrackbar("HL", MASK_WINDOW, &g_H_L, 255, on_TrackbarNumcharge);
-	createTrackbar("HH", MASK_WINDOW, &g_H_H, 255, on_TrackbarNumcharge);
+	createTrackbar("HL", HSV_MASK_WINDOW, &g_H_L, 255, on_TrackbarNumcharge);
+	createTrackbar("HH", HSV_MASK_WINDOW, &g_H_H, 255, on_TrackbarNumcharge);
 
-	createTrackbar("SL", MASK_WINDOW, &g_S_L, 255, on_TrackbarNumcharge);
-	createTrackbar("SH", MASK_WINDOW, &g_S_H, 255, on_TrackbarNumcharge);
+	createTrackbar("SL", HSV_MASK_WINDOW, &g_S_L, 255, on_TrackbarNumcharge);
+	createTrackbar("SH", HSV_MASK_WINDOW, &g_S_H, 255, on_TrackbarNumcharge);
 
-	createTrackbar("VL", MASK_WINDOW, &g_V_L, 255, on_TrackbarNumcharge);
-	createTrackbar("VH", MASK_WINDOW, &g_V_H, 255, on_TrackbarNumcharge);
+	createTrackbar("VL", HSV_MASK_WINDOW, &g_V_L, 255, on_TrackbarNumcharge);
+	createTrackbar("VH", HSV_MASK_WINDOW, &g_V_H, 255, on_TrackbarNumcharge);
 
-	namedWindow(ERODE_MASK_WINDOW, WINDOW_AUTOSIZE);
+	//namedWindow(ERODE_MASK_WINDOW, WINDOW_AUTOSIZE);
 	createTrackbar("erode size", ERODE_MASK_WINDOW, &g_erode_size, 30, on_ErodeSizeChange);
 
+	enum {
+		ERR_OK = 0,
+		ERR_FILTER,
+		ERR_OBJ_NOT_FOUND,
+	};
+
+	int errorflag = ERR_OK;
 	while (1)
 	{
+		errorflag = ERR_OK;
 		//initial first fram to rgb
 		rs2::frameset data = pipe.wait_for_frames();
 		rs2::frameset aligned_set = align_to.process(data);
@@ -4121,45 +4188,43 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 		//=======//
 		//==ORB==//
 		//=======//
-		//i++;
-		//bool update_stats = (i % stats_update_period == 0);
-		//
-		//imshow("color_mat", color_mat);// stop the program if no more images
-		//if (color_mat.empty()) break;
+		i++;
+		bool update_stats = (i % stats_update_period == 0);
 
-		//orb->setMaxFeatures(stats.keypoints);
-		//orb_res = orb_tracker.process(color_mat, stats, ObjectArea);//draw rectangle and find the ObjectArea(boundarybox). return a orb_res(reference + image)
-		//orb_stats += stats;
-		//if (update_stats)
-		//{
-		//	orb_draw_stats = stats;
-		//}
-		////drawStatistics(orb_res, orb_draw_stats);
-		//cv::imshow(ORB_RESULT_WINDOW, orb_res);//draw a mat of the ref image in color image  
-		//waitKey(10);
-		//if (waitKey(1) == 27) break; //quit on ESC button
+		
+		if (color_mat.empty()) break;
+
+		orb->setMaxFeatures(stats.keypoints);
+		orb_res = orb_tracker.process(color_mat, stats, ObjectArea);//draw rectangle and find the ObjectArea(boundarybox). return a orb_res(reference + image) //300ms
+		if(orb_tracker.bObjFound==false)
+			errorflag = ERR_OBJ_NOT_FOUND;
+		orb_stats += stats;
+		if (update_stats)
+		{
+			orb_draw_stats = stats;
+		}
+		//drawStatistics(orb_res, orb_draw_stats);
+		cv::imshow(ORB_RESULT_WINDOW, orb_res);//draw a mat of the ref image in color image  
+		waitKey(10);
+		if (waitKey(1) == 27) break; //quit on ESC button
 
 
 		//=========//
 		//==AKAZE==//
 		//=========//
-		i++;
-		bool update_stats = (i % stats_update_period == 0);
+		//i++;
+		//bool update_stats = (i % stats_update_period == 0);
 
-		imshow("color_mat", color_mat);// stop the program if no more images
-		if (color_mat.empty()) break;
-	
-		akaze_res = akaze_tracker.process(color_mat, stats, ObjectArea);//draw rectangle and find the ObjectArea(boundarybox). return a orb_res(reference + image)
-		akaze_stats += stats;
-		if (update_stats)
-		{
-			akaze_draw_stats = stats;
-		}
+		//if (color_mat.empty()) break;
+
+		//akaze_res = akaze_tracker.process(color_mat, stats, ObjectArea);//draw rectangle and find the ObjectArea(boundarybox). return a orb_res(reference + image) //700ms
+		//akaze_stats += stats;
+		//if (update_stats)
+		//{
+		//	akaze_draw_stats = stats;
+		//}
 		//drawStatistics(orb_res, orb_draw_stats);
-		cv::imshow(AKAZE_RESULT_WINDOW, akaze_res);//draw a mat of the ref image in color image  
-		waitKey(10);
-		if (waitKey(1) == 27) break; //quit on ESC button
-		
+
 		//=============================
 		//==draw a object area mask
 		//=============================
@@ -4171,6 +4236,9 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 			ptMask[i].x = static_cast<int>(ObjectArea[i].x);
 			ptMask[i].y = static_cast<int>(ObjectArea[i].y);
 		}
+		//let the smaller 2 y be smaller to avoid region to small
+		ptMask[0].y -= 20; if (ptMask[0].y < 0) ptMask[0].y = 0;
+		ptMask[1].y -= 20; if (ptMask[1].y < 0) ptMask[1].y = 0;
 
 		cv::Mat matObjectMask = cv::Mat::zeros(color_mat.size(), CV_8UC1);
 		cv::fillPoly(matObjectMask, &ptContain, &iSize, 1, cv::Scalar::all(255));//set the objectMask as a while color
@@ -4183,7 +4251,6 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 		//==transfer to HSV==//
 		Mat ObjInSrc; //object in the source color mat
 		color_mat.copyTo(ObjInSrc, matObjectMask);//just want the object area. The area ouside the object is black. 
-		imshow("Obj in src", ObjInSrc);
 
 		cvtColor(ObjInSrc, hsv, CV_BGR2HSV);//transfer to HSV
 
@@ -4216,28 +4283,78 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 		vector<Moments> mu(Countours.size());
 		vector<Point2f> mc(Countours.size());
 
+
 		for (size_t i = 0; i < Countours.size(); i++)
 		{
-			mu[i] = moments(Countours[i], false); 
+			mu[i] = moments(Countours[i], false);
+
+			if (mu[i].m00 == 0)
+			{
+				errorflag = ERR_FILTER;
+				break;
+			}
 			mc[i] = Point2f(static_cast<float>(mu[i].m10 / mu[i].m00), static_cast<float>(mu[i].m01 / mu[i].m00)); //將moment中的值轉成center
 		}
 
+
+
 		std::sort(mc.begin(), mc.end(), contoursCmpY_);
 
-		Point2d leftlow = Point2d(mc[2].x, mc[2].y); //left low corner
-		Point2d rightlow = Point2d(mc[3].x, mc[3].y);//right low corner
+		if (mc.size() != 4)//if we can not find all 4 corners,the vector out of range occur. 
+		{
+			if(errorflag==ERR_OK)
+				errorflag = ERR_FILTER;
+		}
 
+		//==set mc to leftlow and rightlow
+		Point2d leftlow = { 0,0 };
+		Point2d rightlow = { 0,0 };
+		if (errorflag == ERR_OK)
+		{
+			leftlow = Point2d(mc[2].x, mc[2].y); //left low corner
+			rightlow = Point2d(mc[3].x, mc[3].y);//right low corner
+
+			if (mc[2].x < mc[3].x)
+			{
+				leftlow = Point2d(mc[2].x, mc[2].y);
+				rightlow = Point2d(mc[3].x, mc[3].y);
+			}
+			else
+			{
+				leftlow = Point2d(mc[3].x, mc[3].y);
+				rightlow = Point2d(mc[2].x, mc[2].y);
+			}
+		}
 		double Cam_coor_leftlow[3] = { 0 };
 		double Cam_coor_rightlow[3] = { 0 };
 
 		//==change to camera coordinate==//
 		double pixel_leftlow[2] = { leftlow.x, leftlow.y };
+
+		//====just test up 
+		//int y = (int)(leftlow.y); //sometimes find more than 4 corners,then strange value occure mc[2].x=-nan(ind) mc[2].y=-nan(ind)
+		//if (leftlow.y < 0)
+		//	leftlow.y = leftlow.y;
+		//if (y < 0)
+		//	y = y;
+		//int x = (int)(leftlow.x); //sometimes find more than 4 corners,then strange value occure mc[2].x=-nan(ind) mc[2].y=-nan(ind)
+		//if (leftlow.x < 0)
+		//	leftlow.x = leftlow.x;
+		//if (x < 0)
+		//	x = x;
+		//====just test down
+
+		//==calculate position in camera frame
 		double depth = depth_mat.at<double>((int)(leftlow.y), (int)(leftlow.x));
 		rs2_deproject_pixel_to_point(Cam_coor_leftlow, &mRsDepthIntrinsic, pixel_leftlow, depth);
 
 		double pixel_rightlow[2] = { rightlow.x, rightlow.y };
 		depth = depth_mat.at<double>((int)(rightlow.y), (int)(rightlow.x));
 		rs2_deproject_pixel_to_point(Cam_coor_rightlow, &mRsDepthIntrinsic, pixel_rightlow, depth);
+
+		for (int i = 0; i < 3; i++) Cam_coor_leftlow[i] = Cam_coor_leftlow[i] * 1000;
+		for (int i = 0; i < 3; i++) Cam_coor_rightlow[i] = Cam_coor_rightlow[i] * 1000;
+
 
 		//==change to robot_coordinate==//
 		double Robot_coor_leftlow[3] = { 0 };
@@ -4247,7 +4364,7 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 
 		static bool already_set_corner_coor = false;
 
-		if (already_set_corner_coor == false)
+		if ((already_set_corner_coor == false) && (errorflag==ERR_OK))
 		{
 			gRobot_coor_leftlow = Point3d(Robot_coor_leftlow[DEF_X], Robot_coor_leftlow[DEF_Y], Robot_coor_leftlow[DEF_Z]);
 			gRobot_coor_rightlow = Point3d(Robot_coor_rightlow[DEF_X], Robot_coor_rightlow[DEF_Y], Robot_coor_rightlow[DEF_Z]);
@@ -4255,24 +4372,42 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 		}
 
 		//==draw contours to dst
-		Mat dst = color_mat.clone();
+		Mat dst = ObjInSrc.clone();
 
-		//==draw center point==//
-		for (unsigned int i = 0; i<Countours.size(); i++)
+		//==draw countours and center==//
+		if (errorflag == ERR_OK)
 		{
-			circle(dst, mc[i], 1, Scalar(0, 0, 200), 1);//圈出center點
-			//Scalar color=Scalar(g_rng.uniform(0,255),g_rng.uniform(0,255),g_rng.uniform(0,255));
-			Scalar color = Scalar(0, 255, 0);
-			drawContours(dst, Countours, i, color, 5, 8, Hierarchy, 0, Point());
+			for (unsigned int i = 2; i < 4; i++) circle(dst, mc[i], 1, Scalar(0, 0, 200), 1);//圈出center點
+			for (unsigned int i = 0; i < 2; i++)//for (unsigned int i = 0; i<Countours.size(); i++)
+			{
+				//Scalar color=Scalar(g_rng.uniform(0,255),g_rng.uniform(0,255),g_rng.uniform(0,255));
+				Scalar color = Scalar(0, 255, 0);
+				drawContours(dst, Countours, i, color, 4, 8, Hierarchy, 0, Point());
+			}
 		}
-
 		//==print the coordinate in left low corner and right low corner==//
 		char text[100];
-		sprintf_s(text, "   (%3.1f,%3.1f,%3.1f)", Robot_coor_rightlow[DEF_X], Robot_coor_rightlow[DEF_Y], Robot_coor_rightlow[DEF_Z]);//標註四角落座標
-		putText(dst, text, Point2d(rightlow.x, rightlow.y), FONT_HERSHEY_PLAIN, 1, CV_RGB(255, 100, 100));
+		
+		
+		//sprintf_s(text, "(%3.1f,%3.1f,%3.1f)", Robot_coor_rightlow[DEF_X], Robot_coor_rightlow[DEF_Y], Robot_coor_rightlow[DEF_Z]);//標註四角落座標
+		if (errorflag==ERR_OK)
+		{
+			sprintf_s(text, "right=[%3.0f,%3.0f,%3.0f] mm", Robot_coor_rightlow[DEF_X], Robot_coor_rightlow[DEF_Y], Robot_coor_rightlow[DEF_Z]);
+			putText(dst, text, Point(0, 40), FONT_HERSHEY_SIMPLEX, .7, Scalar(0, 255, 0), 2, 8, false);
 
-		sprintf_s(text, "   (%3.1f,%3.1f,%3.1f)", Robot_coor_leftlow[DEF_X], Robot_coor_leftlow[DEF_Y], Robot_coor_leftlow[DEF_Z]);//標註四角落座標
-		putText(dst, text, Point2d(leftlow.x, leftlow.y), FONT_HERSHEY_PLAIN, 1, CV_RGB(255, 100, 100));
+			sprintf_s(text, "left =[%3.0f,%3.0f,%3.0f] mm", Robot_coor_leftlow[DEF_X], Robot_coor_leftlow[DEF_Y], Robot_coor_leftlow[DEF_Z]);//標註四角落座標
+			putText(dst, text, Point(0, 60), FONT_HERSHEY_SIMPLEX, .7, Scalar(0, 255, 0), 2, 8, false);
+		}
+		else if (errorflag == ERR_FILTER)
+		{
+			sprintf_s(text, "filter error");
+			putText(dst, text, Point(0, 40), FONT_HERSHEY_SIMPLEX, .7, Scalar(0, 255, 0), 2, 8, false);
+		}
+		else if (errorflag == ERR_OBJ_NOT_FOUND)
+		{
+			sprintf_s(text, "not found");
+			putText(dst, text, Point(0, 40), FONT_HERSHEY_SIMPLEX, .7, Scalar(0, 255, 0), 2, 8, false);
+		}
 
 		//此張影像中心的紅色十字架
 		//circle(dst,image_cen,3,Scalar(0,0,200),3);
@@ -4280,22 +4415,25 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 		line(dst, Point2f(image_cen.x - cross_len, image_cen.y), Point2f(image_cen.x + cross_len, image_cen.y), Scalar(0, 0, 200), 2);  //crosshair horizontal
 		line(dst, Point2f(image_cen.x, image_cen.y - cross_len), Point2f(image_cen.x, image_cen.y + cross_len), Scalar(0, 0, 200), 2);  //crosshair horizontal
 
-		if (Countours.size() == 4)
-		{
-			line(dst, mc[0], mc[1], Scalar(0, 200, 0), 2);//將4角落點連線
-			line(dst, mc[1], mc[3], Scalar(0, 200, 0), 2);
-			line(dst, mc[3], mc[2], Scalar(0, 200, 0), 2);
-			line(dst, mc[2], mc[0], Scalar(0, 200, 0), 2);
-		}
+		//if (Countours.size() == 4)
+		//{
+		//	line(dst, mc[0], mc[1], Scalar(0, 200, 0), 2);//將4角落點連線
+		//	line(dst, mc[1], mc[3], Scalar(0, 200, 0), 2);
+		//	line(dst, mc[3], mc[2], Scalar(0, 200, 0), 2);
+		//	line(dst, mc[2], mc[0], Scalar(0, 200, 0), 2);
+		//}
 
 		//show
-		imshow(COLOR_MAT_WINDOW, color_mat);
-		imshow(MASK_WINDOW, mask);//show mask
-		imshow(ERODE_MASK_WINDOW, erode_mask);
-		imshow(OPENING_MASK_WINDOW, dilate_mask);
-		imshow(CANNY_OUTPUT_WINDOW, canny_output);
-		imshow(DST_WINDOW, dst);//show結果
-		waitKey(30);
+		//imshow(AKAZE_RESULT_WINDOW, akaze_res);//draw a mat of the ref image in color image  
+		imshow(ORB_RESULT_WINDOW, orb_res);
+		imshow(OBJECT_IN_SRC_WINDOW, ObjInSrc);
+		//imshow(COLOR_MAT_WINDOW, color_mat);
+		imshow(HSV_MASK_WINDOW, hsv_mask);//show mask
+		//imshow(ERODE_MASK_WINDOW, erode_mask);
+		//imshow(OPENING_MASK_WINDOW, dilate_mask);
+		//imshow(CANNY_OUTPUT_WINDOW, canny_output);
+		imshow(DEST_WINDOW, dst);//show結果
+		waitKey(1);
 
 	}
 	//orb_stats /= i - 1;
