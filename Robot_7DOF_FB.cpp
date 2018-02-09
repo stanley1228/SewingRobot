@@ -3667,7 +3667,7 @@ bool cF446RE::RotateMotor(bool dir, int deg)
 	while (_readecho == false)
 	{
 		count--;
-		Sleep(1000);//ms
+		Sleep(10);//ms
 
 		readbyte = ReadComm(_hserialPort, &ReadData, sizeof(ReadData));
 		if (readbyte != 0)
@@ -3922,13 +3922,13 @@ namespace example {
 //==============
 //vision on find blue
 //==============
-int g_H_L = 89;
-int g_H_H = 134;
+int g_H_L = 90;
+int g_H_H = 122;
 
-int g_S_L = 85;
+int g_S_L = 52;
 int g_S_H = 224;
 
-int g_V_L = 61;
+int g_V_L = 43;
 int g_V_H = 208;
 
 int g_erode_size = 5;
@@ -3943,6 +3943,7 @@ RNG g_rng(12345);
 #define DEST_WINDOW "dst"
 #define CANNY_OUTPUT_WINDOW "canny output"
 #define OBJECT_IN_SRC_WINDOW "object in source"
+#define DEPTH_COLOR_MAT_WINDOW "depth_color_mat"
 
 void on_TrackbarNumcharge(int, void*)
 {
@@ -4080,18 +4081,24 @@ void CaptureRefImage()
 	imwrite("Ref_Image_2.png", Ref_Image);
 
 	//auto depth_stream = PipeProfile.get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>();
-	
+}
 
+
+bool gbStepMotorThreadOn = false;
+bool gbStepMotorWait = true;
+DWORD WINAPI StepMotorThread(LPVOID lpParam)
+{
+	while (gbStepMotorThreadOn)
+	{
+		while (gbStepMotorWait) { Sleep(100); }
+		gpF446RE->RotateMotor(cF446RE::DEF_COUNTER_CLOCK_WISE, 5);
+		Sleep(2000);
+		gbStepMotorWait = true;
+	}
+	return 0;
 }
 DWORD WINAPI VisionOnThread(LPVOID lpParam)
 {
-	//CaptureRefImage();
-	//return 0;
-	//CommandLineParser parser(argc, argv, "{@input_path |0|input path can be a camera id, like 0,1,2 or a video filename}");
-	//parser.printMessage();
-	//string input_path = parser.get<string>(0);
-	//string video_name = input_path;
-
 	//============================================
 	//==find the frame by ORB and find blue corner
 	//============================================
@@ -4155,7 +4162,7 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 	Mat	dst;
 
 	//namedWindow(COLOR_MAT_WINDOW, WINDOW_AUTOSIZE);
-	namedWindow(HSV_MASK_WINDOW, WINDOW_AUTOSIZE);
+	//namedWindow(HSV_MASK_WINDOW, WINDOW_AUTOSIZE);
 
 	createTrackbar("HL", HSV_MASK_WINDOW, &g_H_L, 255, on_TrackbarNumcharge);
 	createTrackbar("HH", HSV_MASK_WINDOW, &g_H_H, 255, on_TrackbarNumcharge);
@@ -4173,9 +4180,16 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 		ERR_OK = 0,
 		ERR_FILTER,
 		ERR_OBJ_NOT_FOUND,
+		ERR_NOT_ARRIVE
 	};
 
 	int errorflag = ERR_OK;
+
+	//==let motor turn until the object is found==
+	int RecvParam = 0;
+	gbStepMotorThreadOn = true;
+	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)StepMotorThread, (void*)&RecvParam, 0, NULL);
+
 	while (1)
 	{
 		errorflag = ERR_OK;
@@ -4185,6 +4199,11 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 		depth_mat = depth_frame_to_meters(pipe, aligned_set.get_depth_frame());
 		color_mat = frame_to_mat(aligned_set.get_color_frame());
 
+		// Query frame size (width and height)
+
+		// Create OpenCV matrix of size (w,h) from the colorized depth data
+		rs2::frame depth_frame = color_map(aligned_set.get_depth_frame());
+		Mat depth_color_mat(Size(640, 480), CV_8UC3, (void*)depth_frame.get_data(), Mat::AUTO_STEP);
 		//=======//
 		//==ORB==//
 		//=======//
@@ -4309,7 +4328,7 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 		//==set mc to leftlow and rightlow
 		Point2d leftlow = { 0,0 };
 		Point2d rightlow = { 0,0 };
-		if (errorflag == ERR_OK)
+		if (errorflag == ERR_OK )
 		{
 			leftlow = Point2d(mc[2].x, mc[2].y); //left low corner
 			rightlow = Point2d(mc[3].x, mc[3].y);//right low corner
@@ -4362,20 +4381,23 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 		calculate_obj(Cam_coor_leftlow, Robot_coor_leftlow);
 		calculate_obj(Cam_coor_rightlow, Robot_coor_rightlow);
 
-		static bool already_set_corner_coor = false;
+		if (abs(Robot_coor_leftlow[DEF_X] - Robot_coor_rightlow[DEF_X]) > 20) //let two corner point be horizontal
+			errorflag = ERR_NOT_ARRIVE;
 
+		static bool already_set_corner_coor = false;
 		if ((already_set_corner_coor == false) && (errorflag==ERR_OK))
 		{
 			gRobot_coor_leftlow = Point3d(Robot_coor_leftlow[DEF_X], Robot_coor_leftlow[DEF_Y], Robot_coor_leftlow[DEF_Z]);
 			gRobot_coor_rightlow = Point3d(Robot_coor_rightlow[DEF_X], Robot_coor_rightlow[DEF_Y], Robot_coor_rightlow[DEF_Z]);
 			already_set_corner_coor = true;
+			gbStepMotorThreadOn= false;
 		}
 
 		//==draw contours to dst
 		Mat dst = ObjInSrc.clone();
 
 		//==draw countours and center==//
-		if (errorflag == ERR_OK)
+		if (errorflag == ERR_OK || (errorflag == ERR_NOT_ARRIVE))
 		{
 			for (unsigned int i = 2; i < 4; i++) circle(dst, mc[i], 1, Scalar(0, 0, 200), 1);//圈出center點
 			for (unsigned int i = 0; i < 2; i++)//for (unsigned int i = 0; i<Countours.size(); i++)
@@ -4390,24 +4412,32 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 		
 		
 		//sprintf_s(text, "(%3.1f,%3.1f,%3.1f)", Robot_coor_rightlow[DEF_X], Robot_coor_rightlow[DEF_Y], Robot_coor_rightlow[DEF_Z]);//標註四角落座標
-		if (errorflag==ERR_OK)
+		if (errorflag==ERR_OK || (errorflag == ERR_NOT_ARRIVE))
 		{
 			sprintf_s(text, "right=[%3.0f,%3.0f,%3.0f] mm", Robot_coor_rightlow[DEF_X], Robot_coor_rightlow[DEF_Y], Robot_coor_rightlow[DEF_Z]);
 			putText(dst, text, Point(0, 40), FONT_HERSHEY_SIMPLEX, .7, Scalar(0, 255, 0), 2, 8, false);
 
 			sprintf_s(text, "left =[%3.0f,%3.0f,%3.0f] mm", Robot_coor_leftlow[DEF_X], Robot_coor_leftlow[DEF_Y], Robot_coor_leftlow[DEF_Z]);//標註四角落座標
 			putText(dst, text, Point(0, 60), FONT_HERSHEY_SIMPLEX, .7, Scalar(0, 255, 0), 2, 8, false);
+
+			if(errorflag == ERR_NOT_ARRIVE)
+				gbStepMotorWait = false; //trigger step motor to turn
 		}
-		else if (errorflag == ERR_FILTER)
+		else
 		{
-			sprintf_s(text, "filter error");
-			putText(dst, text, Point(0, 40), FONT_HERSHEY_SIMPLEX, .7, Scalar(0, 255, 0), 2, 8, false);
+			if(errorflag == ERR_FILTER)
+			{
+				sprintf_s(text, "filter error");
+				putText(dst, text, Point(0, 40), FONT_HERSHEY_SIMPLEX, .7, Scalar(0, 255, 0), 2, 8, false);
+			}
+			else if(errorflag == ERR_OBJ_NOT_FOUND)
+			{
+				sprintf_s(text, "not found");
+				putText(dst, text, Point(0, 40), FONT_HERSHEY_SIMPLEX, .7, Scalar(0, 255, 0), 2, 8, false);
+			}		
+			gbStepMotorWait = false; //trigger step motor to turn
 		}
-		else if (errorflag == ERR_OBJ_NOT_FOUND)
-		{
-			sprintf_s(text, "not found");
-			putText(dst, text, Point(0, 40), FONT_HERSHEY_SIMPLEX, .7, Scalar(0, 255, 0), 2, 8, false);
-		}
+	
 
 		//此張影像中心的紅色十字架
 		//circle(dst,image_cen,3,Scalar(0,0,200),3);
@@ -4426,13 +4456,20 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 		//show
 		//imshow(AKAZE_RESULT_WINDOW, akaze_res);//draw a mat of the ref image in color image  
 		imshow(ORB_RESULT_WINDOW, orb_res);
-		imshow(OBJECT_IN_SRC_WINDOW, ObjInSrc);
+		moveWindow(ORB_RESULT_WINDOW, 0, 0);
+		//moveWindow(DEPTH_COLOR_MAT_WINDOW, 0, 0);
+		//imshow(OBJECT_IN_SRC_WINDOW, ObjInSrc);
+		//moveWindow(OBJECT_IN_SRC_WINDOW, 0, 500);
 		//imshow(COLOR_MAT_WINDOW, color_mat);
-		imshow(HSV_MASK_WINDOW, hsv_mask);//show mask
+		//imshow(HSV_MASK_WINDOW, hsv_mask);//show mask
+		//moveWindow(HSV_MASK_WINDOW, 0, 500);
+		imshow(DEPTH_COLOR_MAT_WINDOW, depth_color_mat);
+		moveWindow(DEPTH_COLOR_MAT_WINDOW, 0, 500);
 		//imshow(ERODE_MASK_WINDOW, erode_mask);
 		//imshow(OPENING_MASK_WINDOW, dilate_mask);
 		//imshow(CANNY_OUTPUT_WINDOW, canny_output);
 		imshow(DEST_WINDOW, dst);//show結果
+		moveWindow(DEST_WINDOW, 600, 500);
 		waitKey(1);
 
 	}
@@ -4443,6 +4480,8 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 
 
 }
+
+
 void tran2robotframe(Point2d img_cen, vector<Point2f> cam_point, vector<Point2f> &robotframe_point)
 {
 	float mm_per_pixel = 0.75f;
