@@ -529,6 +529,7 @@ int SetAllAccTo(double deg_s2);
 void LineMoveTo(int Coordinate,CStaArray &L_starP,CStaArray &L_endP,CStaArray &R_starP,CStaArray &R_endP,double CostTime);
 void RotateMoveTo(int Coordinate, CStaArray &L_starP,CStaArray &L_endP,CStaArray &R_starP,CStaArray &R_endP,CStaArray &arc_cen,double rot_rad, double CostTime);
 void IKOutputToArm(CStaArray &PathPlanPoint_R,CStaArray &PathPlanPoint_L);
+void TestMotorPID();
 
 int Output_to_Dynamixel(int RLHand,const double *Ang_rad,const unsigned short int *velocity) ;
 int Output_to_Dynamixel_Dual(const double *Ang_rad_R,const unsigned short int *velocity_R,const double *Ang_rad_L,const unsigned short int *velocity_L);

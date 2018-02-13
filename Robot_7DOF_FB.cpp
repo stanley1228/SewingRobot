@@ -1073,6 +1073,102 @@ void IKOutputToArm(CStaArray &PathPlanPoint_R,CStaArray &PathPlanPoint_L)
 		gstatic_abst+=gCycleT;
 }
 
+void TestMotorPID()
+{
+	Torque_Switch(1);
+
+	dxl2_write_word(gMapLAxisID[Index_AXIS4], POS_P_GAIN, 3000);
+	dxl2_write_word(gMapLAxisID[Index_AXIS4], POS_I_GAIN, 10);
+	dxl2_write_word(gMapLAxisID[Index_AXIS4], POS_D_GAIN, 200);
+
+	double theta_start = 10;
+	double theta_end = 120;
+	double costTime = 10;
+	double stabletime = 2;
+	double CYCLE_TIME = 0.02;
+	double theta = 0;
+	double speed_ratio = 1;
+	double keep_deg = 20;
+	double profile_vel = (theta_end - theta_start)*speed_ratio / costTime;
+	double profile_acc= pow(profile_vel, 2) / (2 * keep_deg);
+	
+	double profile_vel_pus = profile_vel*DEF_RATIO_VEL_DEG_TO_PUS_DXL2;
+	double profile_acc_pus = profile_acc*DEF_RATIO_ACC_DEG_TO_PUS_DXL2;
+	profile_vel_pus = round(profile_vel_pus);
+	profile_acc_pus = round(profile_acc_pus);
+
+	if (profile_vel_pus == 0) profile_vel_pus = 1;
+	if (profile_acc_pus == 0) profile_acc_pus = 1;
+
+	dxl2_write_dword(gMapLAxisID[Index_AXIS4], PROFILE_ACC, (unsigned long)profile_acc_pus);
+	dxl2_write_dword(gMapLAxisID[Index_AXIS4], PROFILE_VEL,(unsigned long)profile_vel_pus);
+
+	LARGE_INTEGER nFreq;
+	LARGE_INTEGER nBeginTime;
+	LARGE_INTEGER nEndTime;
+	QueryPerformanceFrequency(&nFreq);
+
+	std::fstream fileAxis4;
+	fileAxis4.open("D://Axis4.csv", ios::out | ios::trunc);
+
+	int cnt = 0;
+
+	for (double t = 0; t<= costTime+ stabletime; t+= CYCLE_TIME)
+	{
+		cnt++;
+
+		QueryPerformanceCounter(&nBeginTime); //Record cycle start time
+
+		//==calculate cartisian point==//
+		double theta_deg_cmd = 0;
+		unsigned long theta_pus_cmd = 0;
+
+		if (t < costTime)
+		{
+			theta_deg_cmd = theta_start + t*(theta_end - theta_start) / costTime;
+		}
+		else
+		{
+			theta_deg_cmd = theta_end;
+		}
+		theta_pus_cmd =(unsigned long)theta_deg_cmd*DEF_RATIO_DEG_TO_PUS;
+		
+		//==send to 4 axis==//
+		if (cnt % 4 == 0)
+		{
+			dxl2_write_dword(gMapLAxisID[Index_AXIS4], GOAL_POSITION, theta_pus_cmd + gr2m_offset_pulse_L[Index_AXIS4]);
+		}
+
+		//==read back==//
+		double theta_deg_fb = 0;
+		double theta_pus_fb = 0;
+		theta_pus_fb = dxl2_read_dword(gMapLAxisID[Index_AXIS4], PRESENT_POS);
+		theta_pus_fb -= gr2m_offset_pulse_L[Index_AXIS4]; //motor to robot offset =>minus offset
+		theta_deg_fb = theta_pus_fb*DEF_RATIO_PUS_TO_DEG;
+
+		short int load = 0;
+		double LoadPercent = 0;
+		load = dxl2_read_word(gMapLAxisID[Index_AXIS4], PRESENT_CURRENT);
+		LoadPercent = (double)abs(load)/1941 * 100;//dxl2
+		char buffer[100];
+		int k = 0;
+		k = sprintf_s(buffer, sizeof(buffer), "%4.3f,%4.1f,%4.1f,%4.1f\n",t, theta_deg_cmd, theta_deg_fb, LoadPercent);
+		fileAxis4.write(buffer, k);
+
+		do
+		{
+			Sleep(0);
+			QueryPerformanceCounter(&nEndTime);
+			//printf("%f\n",(double)(nEndTime.QuadPart-nBeginTime.QuadPart)*1000/(double)nFreq.QuadPart);
+		} while ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) / (double)nFreq.QuadPart < CYCLE_TIME);
+	}
+
+	//dxl2_write_byte(gMapLAxisID[Index_AXIS4], TORQUE_ENABLE, 0);
+
+	fileAxis4.close();
+	
+}
+
 void LineMoveTo(int Coordinate,CStaArray &L_starP,CStaArray &L_endP,CStaArray &R_starP,CStaArray &R_endP,double CostTime)
 {
 	//==transfer frame coordinate to robot coordinate==//
@@ -4409,8 +4505,7 @@ DWORD WINAPI VisionOnThread(LPVOID lpParam)
 		}
 		//==print the coordinate in left low corner and right low corner==//
 		char text[100];
-		
-		
+			
 		//sprintf_s(text, "(%3.1f,%3.1f,%3.1f)", Robot_coor_rightlow[DEF_X], Robot_coor_rightlow[DEF_Y], Robot_coor_rightlow[DEF_Z]);//¼Ðµù¥|¨¤¸¨®y¼Ð
 		if (errorflag==ERR_OK || (errorflag == ERR_NOT_ARRIVE))
 		{

@@ -141,6 +141,8 @@ void CSewingRobotDlg::OnBnClickedBtnIniDxl()
 
 void CSewingRobotDlg::OnBnClickedBtnSewprocess()
 {
+	TestMotorPID();
+		return;
 	Torque_Switch(1);
 	PID_Setting_Dual();
 	SetAllAccTo(50); //50 deg/acc^
