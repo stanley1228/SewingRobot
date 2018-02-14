@@ -815,7 +815,12 @@ void CStaArray::SetArray(double x,double y,double z,double alpha,double beta,dou
 	m_arr[DEF_REDNT_ALPHA]=rednt_alpha;
 }
 
-
+void CStaArray::arr_round()
+{
+	for (int i = 0; i<m_ARR_SIZE; i++)
+		m_arr[i] = round(m_arr[i]);
+	
+}
 CStaArray CStaArray::operator*(double k)
 {
 	CStaArray temp;
@@ -825,6 +830,14 @@ CStaArray CStaArray::operator*(double k)
 	return temp;
 }
 
+CStaArray CStaArray::operator*(CStaArray &otherk)
+{
+	CStaArray temp;
+	for (int i = 0; i<m_ARR_SIZE; i++)
+		temp.m_arr[i] = m_arr[i] * otherk.m_arr[i];
+
+	return temp;
+}
 
 CStaArray CStaArray::operator/(double k)
 {
@@ -1757,8 +1770,12 @@ int TestMoveToSewingHome_Dual()
 	//output to motor
 	unsigned short int velocity_R[MAX_AXIS_NUM]={6,3,5,2,4,4,4};
 	unsigned short int velocity_L[MAX_AXIS_NUM]={4,4,4,4,4,4,4};
+
+	unsigned short int acc_R[MAX_AXIS_NUM] = { 1,1,1,1,1,1,1 };
+	unsigned short int acc_L[MAX_AXIS_NUM] = { 1,1,1,1,1,1,1};
+
 	
-	Output_to_Dynamixel_Dual(theta_R,velocity_R,theta_L,velocity_L); 
+	Output_to_Dynamixel_Dual(theta_R,velocity_R, acc_R,theta_L,velocity_L, acc_L);
 
 	WaitMotionDoneDual();
 
@@ -1937,7 +1954,7 @@ int Output_to_Dynamixel(int RLHand,const double *Ang_rad,const unsigned short in
 }
 
 
-int Output_to_Dynamixel_Dual(const double *Ang_rad_R,const unsigned short int *velocity_R,const double *Ang_rad_L,const unsigned short int *velocity_L)
+int Output_to_Dynamixel_Dual(const double *Ang_rad_R,const unsigned short int *velocity_R, const unsigned short int *acc_R ,const double *Ang_rad_L,const unsigned short int *velocity_L,const unsigned short int *acc_L)
 {
 	unsigned char i=0;
 
@@ -1968,49 +1985,29 @@ int Output_to_Dynamixel_Dual(const double *Ang_rad_R,const unsigned short int *v
 		}
 	}
 
-	//================================//
-	//==output to motor by sync write===//
-	//===============================//
-	//==send profile vel==//
+	//================================
+	//==output to motor by sync write with acc,vel,position
+	//================================
 	dxl2_set_txpacket_id(BROADCAST_ID);
 	dxl2_set_txpacket_instruction(INST_SYNC_WRITE);
 	unsigned short idx = 0;
-	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(PROFILE_VEL));
-	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(PROFILE_VEL));
-	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(PROFILE_VEL_LENGTH)); //data length
-	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(PROFILE_VEL_LENGTH));
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(PROFILE_ACC));//start address
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(PROFILE_ACC));//start address
+	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(PROFILE_ACC_LENGTH + PROFILE_VEL_LENGTH + GOAL_POSITION_LENGTH)); //data length
+	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(PROFILE_ACC_LENGTH + PROFILE_VEL_LENGTH + GOAL_POSITION_LENGTH));
 	for (int i = Index_AXIS1; i < MAX_AXIS_NUM; i++)
 	{
 		dxl2_set_txpacket_parameter(idx++, gMapRAxisID[i]);
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_LOWORD(acc_R[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_LOWORD(acc_R[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_HIWORD(acc_R[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_HIWORD(acc_R[i])));
+
 		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_LOWORD(velocity_R[i])));
 		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_LOWORD(velocity_R[i])));
 		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_HIWORD(velocity_R[i])));
 		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_HIWORD(velocity_R[i])));
-	}
-	for (int i = Index_AXIS1; i < MAX_AXIS_NUM; i++)
-	{
-		dxl2_set_txpacket_parameter(idx++, gMapLAxisID[i]);
-		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_LOWORD(velocity_L[i])));
-		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_LOWORD(velocity_L[i])));
-		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_HIWORD(velocity_L[i])));
-		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_HIWORD(velocity_L[i])));
-	}
-	dxl2_set_txpacket_length(idx + 3);
-	dxl2_txrx_packet();
-	if (dxl_get_comm_result() != COMM_RXSUCCESS)
-		return -1;
 
-	//==send goal positino==//
-	dxl2_set_txpacket_id(BROADCAST_ID);
-	dxl2_set_txpacket_instruction(INST_SYNC_WRITE);
-	idx = 0;
-	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(GOAL_POSITION));
-	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(GOAL_POSITION));
-	dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(GOAL_POSITION_LENGTH)); 
-	dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(GOAL_POSITION_LENGTH));
-	for (int i = Index_AXIS1; i < MAX_AXIS_NUM; i++)
-	{
-		dxl2_set_txpacket_parameter(idx++, gMapRAxisID[i]);
 		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_LOWORD(Ang_pulse_R[i])));
 		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_LOWORD(Ang_pulse_R[i])));
 		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_HIWORD(Ang_pulse_R[i])));
@@ -2019,10 +2016,22 @@ int Output_to_Dynamixel_Dual(const double *Ang_rad_R,const unsigned short int *v
 	for (int i = Index_AXIS1; i < MAX_AXIS_NUM; i++)
 	{
 		dxl2_set_txpacket_parameter(idx++, gMapLAxisID[i]);
+		
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_LOWORD(acc_L[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_LOWORD(acc_L[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_HIWORD(acc_L[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_HIWORD(acc_L[i])));
+		
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_LOWORD(velocity_L[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_LOWORD(velocity_L[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_HIWORD(velocity_L[i])));
+		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_HIWORD(velocity_L[i])));
+
 		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_LOWORD(Ang_pulse_L[i])));
 		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_LOWORD(Ang_pulse_L[i])));
 		dxl2_set_txpacket_parameter(idx++, DXL_LOBYTE(DXL_HIWORD(Ang_pulse_L[i])));
 		dxl2_set_txpacket_parameter(idx++, DXL_HIBYTE(DXL_HIWORD(Ang_pulse_L[i])));
+
 	}
 	dxl2_set_txpacket_length(idx + 3);
 	dxl2_txrx_packet();
@@ -3126,28 +3135,68 @@ int MoveToPoint_Dual(double Point_R[7],double Point_L[7])
 	}
 
 	//==calculate the velocity in joint space
-	static CStaArray last_theta_rad_R=theta_rad_R;
+	static CStaArray last_theta_rad_R=theta_rad_R;//initial first time
 	static CStaArray last_theta_rad_L=theta_rad_L;
 
-	const float speed_ratio=0.9f;//use the speed ratio to set a speed that cannot achieve the goal before next command to prevent the shake problem
-	CStaArray vel_pus_R=(theta_rad_R-last_theta_rad_R)*DEF_RATIO_VEL_RAD_TO_PUS_DXL2*(speed_ratio/gCycleT); //vel_deg=deg/s  0.684deg/s~702deg/s
-	CStaArray vel_pus_L=(theta_rad_L-last_theta_rad_L)*DEF_RATIO_VEL_RAD_TO_PUS_DXL2*(speed_ratio/gCycleT);
+	//add 
+	static CStaArray theta_deg_R = theta_rad_R*DEF_RATIO_RAD_TO_DEG;
+	static CStaArray theta_deg_L = theta_rad_L*DEF_RATIO_RAD_TO_DEG;
+	static CStaArray last_theta_deg_R = theta_deg_R;
+	static CStaArray last_theta_deg_L = theta_deg_L;
 
 
-	last_theta_rad_R=theta_rad_R;
-	last_theta_rad_L=theta_rad_L;
+	theta_deg_R = theta_rad_R*DEF_RATIO_RAD_TO_DEG;
+	theta_deg_L = theta_rad_L*DEF_RATIO_RAD_TO_DEG;
+	double speed_ratio = 1;
+	double keep_deg = 20;
+	CStaArray profile_vel_R = (theta_deg_R - last_theta_deg_R)*speed_ratio / gCycleT;
+	CStaArray profile_vel_L = (theta_deg_L - last_theta_deg_L)*speed_ratio / gCycleT;
+
+	CStaArray profile_acc_R = profile_vel_R*profile_vel_R / (2 * keep_deg);
+	CStaArray profile_acc_L = profile_vel_L*profile_vel_L / (2 * keep_deg);
+
+
+	CStaArray profile_vel_pus_R = profile_vel_R*DEF_RATIO_VEL_DEG_TO_PUS_DXL2;
+	CStaArray profile_vel_pus_L = profile_vel_L*DEF_RATIO_VEL_DEG_TO_PUS_DXL2;
+
+	profile_vel_pus_R.arr_round();
+	profile_vel_pus_L.arr_round();
+
+	CStaArray profile_acc_pus_R = profile_acc_R*DEF_RATIO_ACC_DEG_TO_PUS_DXL2;
+	CStaArray profile_acc_pus_L = profile_acc_L*DEF_RATIO_ACC_DEG_TO_PUS_DXL2;
+
+	profile_acc_pus_R.arr_round();
+	profile_acc_pus_L.arr_round();
+
+
+	//const float speed_ratio=0.9f;//use the speed ratio to set a speed that cannot achieve the goal before next command to prevent the shake problem
+	//CStaArray vel_pus_R=(theta_rad_R-last_theta_rad_R)*DEF_RATIO_VEL_RAD_TO_PUS_DXL2*(speed_ratio/gCycleT); //vel_deg=deg/s  0.684deg/s~702deg/s
+	//CStaArray vel_pus_L=(theta_rad_L-last_theta_rad_L)*DEF_RATIO_VEL_RAD_TO_PUS_DXL2*(speed_ratio/gCycleT);
+
+
+	last_theta_deg_R=theta_deg_R;
+	last_theta_deg_L=theta_deg_L;
 
 	//==output to motor==//
 	unsigned short int vel_pus_R_int[MAX_AXIS_NUM]={0};
 	unsigned short int vel_pus_L_int[MAX_AXIS_NUM]={0};
+	unsigned short int acc_pus_R_int[MAX_AXIS_NUM] = { 0 };
+	unsigned short int acc_pus_L_int[MAX_AXIS_NUM] = { 0 };
+
 
 	for(int i=Index_AXIS1;i<=Index_AXIS7;i++) 
 	{
-		vel_pus_R_int[i]=(unsigned short int)abs(vel_pus_R.m_arr[i]);
-		vel_pus_L_int[i]=(unsigned short int)abs(vel_pus_L.m_arr[i]);
+		vel_pus_R_int[i]=(unsigned short int)abs(profile_vel_pus_R.m_arr[i]);
+		vel_pus_L_int[i]=(unsigned short int)abs(profile_vel_pus_L.m_arr[i]);
+		acc_pus_R_int[i] = (unsigned short int)abs(profile_acc_pus_R.m_arr[i]);
+		acc_pus_L_int[i] = (unsigned short int)abs(profile_acc_pus_L.m_arr[i]);
+
 
 		vel_pus_R_int[i] = (vel_pus_R_int[i] == 0) ? 1 :vel_pus_R_int[i];
 		vel_pus_L_int[i] = (vel_pus_L_int[i] == 0) ? 1 :vel_pus_L_int[i];
+		acc_pus_R_int[i] = (acc_pus_R_int[i] == 0) ? 1 : acc_pus_R_int[i];
+		acc_pus_L_int[i] = (acc_pus_L_int[i] == 0) ? 1 : acc_pus_L_int[i];
+
 	}
 
 #ifdef CHECK_JOINT_VEL_CMD
@@ -3164,7 +3213,7 @@ int MoveToPoint_Dual(double Point_R[7],double Point_L[7])
 #endif
 
 
-	rt=Output_to_Dynamixel_Dual(theta_rad_R.m_arr,vel_pus_R_int,theta_rad_L.m_arr,vel_pus_L_int); 
+	 rt = Output_to_Dynamixel_Dual(theta_rad_R.m_arr, vel_pus_R_int, acc_pus_R_int , theta_rad_L.m_arr, vel_pus_L_int,acc_pus_L_int);
 
 	////output to motor
 	//unsigned short int velocity_R[MAX_AXIS_NUM]={vel_pus_R,vel_pus_R,vel_pus_R,vel_pus_R,vel_pus_R,vel_pus_R,vel_pus_R};

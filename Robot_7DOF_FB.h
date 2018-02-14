@@ -497,11 +497,14 @@ public:
 
 	double at(int index);
 	void SetArray(double x,double y,double z,double alpha,double beta,double gamma,double rednt_alpha);
+	void arr_round();
 
 	CStaArray operator*(double k);
+	CStaArray operator*(CStaArray &otherk);
 	CStaArray operator/(double k);
 	CStaArray operator+(CStaArray &other);
 	CStaArray operator-(CStaArray &other);
+
 };
 
 
@@ -532,7 +535,7 @@ void IKOutputToArm(CStaArray &PathPlanPoint_R,CStaArray &PathPlanPoint_L);
 void TestMotorPID();
 
 int Output_to_Dynamixel(int RLHand,const double *Ang_rad,const unsigned short int *velocity) ;
-int Output_to_Dynamixel_Dual(const double *Ang_rad_R,const unsigned short int *velocity_R,const double *Ang_rad_L,const unsigned short int *velocity_L);
+int Output_to_Dynamixel_Dual(const double *Ang_rad_R,const unsigned short int *velocity_R, const unsigned short int *acc_R,const double *Ang_rad_L,const unsigned short int *velocity_L, const unsigned short int *acc_L);
 int Output_to_Dynamixel_pulse(const unsigned short int *Ang_pulse,const unsigned short int *velocity);
 
 //Matrix R_z1x2y3(double alpha,double beta,double gamma);
