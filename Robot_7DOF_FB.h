@@ -290,7 +290,7 @@ enum{
 #define AXISL1_POS_P_GAIN	40		
 #define AXISL2_POS_P_GAIN	32
 #define AXISL3_POS_P_GAIN	32
-#define AXISL4_POS_P_GAIN	800
+#define AXISL4_POS_P_GAIN	3000
 #define AXISL5_POS_P_GAIN	32
 #define AXISL6_POS_P_GAIN	32
 #define AXISL7_POS_P_GAIN	32
@@ -307,7 +307,7 @@ enum{
 #define AXISL1_POS_I_GAIN	20	
 #define AXISL2_POS_I_GAIN	15
 #define AXISL3_POS_I_GAIN	15
-#define AXISL4_POS_I_GAIN	0
+#define AXISL4_POS_I_GAIN	10
 #define AXISL5_POS_I_GAIN	15
 #define AXISL6_POS_I_GAIN	15
 #define AXISL7_POS_I_GAIN	15
@@ -324,7 +324,7 @@ enum{
 #define AXISL1_POS_D_GAIN	10		
 #define AXISL2_POS_D_GAIN	10
 #define AXISL3_POS_D_GAIN	10
-#define AXISL4_POS_D_GAIN	0
+#define AXISL4_POS_D_GAIN	200
 #define AXISL5_POS_D_GAIN	10
 #define AXISL6_POS_D_GAIN	10
 #define AXISL7_POS_D_GAIN	10
@@ -547,7 +547,7 @@ cv::Mat Rogridues(double theta, cv::Mat V_A);
 int IK_7DOF_FB7roll(int RLHand,const double linkL[6],const double base[3],const double Pend[3],const double PoseAngle[3],const double Rednt_alpha, double* out_theta);
 bool AngleOverConstrain(int RLHand,const double theta[MAX_AXIS_NUM],int *OverIndex);
 int MoveToPoint(int RLHand,double Point[7], double vel_deg); //Point[x,y,z,alpha,beta,gamma,redant_alpha]
-int MoveToPoint_Dual(double Point_R[7], double Point_L[7]);  //應該要有一個速度參數
+int MoveToPoint_Dual(double current_theta_deg_R[7], double Point_R[7], double current_theta_deg_L[7], double Point_L[7]);
 int IsMoving(int RLHand,bool *stillmoving);
 void QPDelay_ms(int t_ms);
 

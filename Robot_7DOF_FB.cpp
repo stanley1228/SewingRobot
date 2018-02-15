@@ -33,14 +33,14 @@
 #define MOVETOPOINT_DUAL
 #define CHECK_JOINT_PATH  
 //#define CHECK_JOINT_VEL_CMD
-//#define MOVE_TO_INITIAL_POINT
-//#define RECORD_JOINT_ANGLE
-//#define RECORD_JOINT_VEL
-//#define RECORD_JOINT_LOAD
+#define MOVE_TO_INITIAL_POINT
+#define RECORD_JOINT_ANGLE
+#define RECORD_JOINT_VEL
+#define RECORD_JOINT_LOAD
 //#define RECORD_JOINT_MOVING
 //#define DEF_WAIT_ENTER
 
-const double gCycleT=0.5;
+const double gCycleT=0.2;
 
 std::fstream gfileR;
 std::fstream gfileL;
@@ -887,17 +887,9 @@ void IKOutputToArm(CStaArray &PathPlanPoint_R,CStaArray &PathPlanPoint_L)
 	
 
 		
-#ifdef MOVETOPOINT_DUAL
-	static int cnt = 0;
-	if(cnt%10==0)
-		MoveToPoint_Dual(PathPlanPoint_R.m_arr,PathPlanPoint_L.m_arr);  //使用原本matrix大約20ms    改為opencv matri後平均2.5ms 因此cycle time想抓10ms  
-#endif
-	
-	_cprintf("Pend_R=[%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f],Pend_L=[%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f]\n", PathPlanPoint_R.at(DEF_X), PathPlanPoint_R.at(DEF_Y), PathPlanPoint_R.at(DEF_Z), PathPlanPoint_R.at(DEF_ALPHA), PathPlanPoint_R.at(DEF_BETA), PathPlanPoint_R.at(DEF_GAMMA), PathPlanPoint_R.at(DEF_REDNT_ALPHA), PathPlanPoint_L.at(DEF_X), PathPlanPoint_L.at(DEF_Y), PathPlanPoint_L.at(DEF_Z), PathPlanPoint_L.at(DEF_ALPHA), PathPlanPoint_L.at(DEF_BETA), PathPlanPoint_L.at(DEF_GAMMA), PathPlanPoint_L.at(DEF_REDNT_ALPHA));
-		
 	
 
-		//==確認軌跡點==//
+	//==確認軌跡點==//
 #ifdef CHECK_CARTESIAN_PATH
 	char buffer[100];
 	int k=0;
@@ -1083,6 +1075,17 @@ void IKOutputToArm(CStaArray &PathPlanPoint_R,CStaArray &PathPlanPoint_L)
 		}
 
 #endif
+
+#ifdef MOVETOPOINT_DUAL
+		static int cnt = 0;
+		if (cnt % 10 == 0)
+			MoveToPoint_Dual(pos_deg_R,PathPlanPoint_R.m_arr,pos_deg_L,PathPlanPoint_L.m_arr);  //使用原本matrix大約20ms    改為opencv matri後平均2.5ms 因此cycle time想抓10ms  
+#endif
+
+		_cprintf("Pend_R=[%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f],Pend_L=[%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f]\n", PathPlanPoint_R.at(DEF_X), PathPlanPoint_R.at(DEF_Y), PathPlanPoint_R.at(DEF_Z), PathPlanPoint_R.at(DEF_ALPHA), PathPlanPoint_R.at(DEF_BETA), PathPlanPoint_R.at(DEF_GAMMA), PathPlanPoint_R.at(DEF_REDNT_ALPHA), PathPlanPoint_L.at(DEF_X), PathPlanPoint_L.at(DEF_Y), PathPlanPoint_L.at(DEF_Z), PathPlanPoint_L.at(DEF_ALPHA), PathPlanPoint_L.at(DEF_BETA), PathPlanPoint_L.at(DEF_GAMMA), PathPlanPoint_L.at(DEF_REDNT_ALPHA));
+
+
+
 		gstatic_abst+=gCycleT;
 }
 
@@ -1144,7 +1147,7 @@ void TestMotorPID()
 		{
 			theta_deg_cmd = theta_end;
 		}
-		theta_pus_cmd =(unsigned long)theta_deg_cmd*DEF_RATIO_DEG_TO_PUS;
+		theta_pus_cmd =(unsigned long)(theta_deg_cmd*DEF_RATIO_DEG_TO_PUS);
 		
 		//==send to 4 axis==//
 		if (cnt % 4 == 0)
@@ -1203,7 +1206,7 @@ void LineMoveTo(int Coordinate,CStaArray &L_starP, CStaArray &L_endP, CStaArray 
 	CStaArray PathPlanPoint_R(0, 0, 0, 0, 0, 0, 0);
 	CStaArray PathPlanPoint_L(0, 0, 0, 0, 0, 0, 0);
 
-	for (float t = 0; t <= CostTime; t += gCycleT)
+	for (double t = 0; t <= CostTime; t += gCycleT)
 	{
 		QueryPerformanceCounter(&nBeginTime); //Record cycle start time
 
@@ -1247,12 +1250,12 @@ void RotateMoveTo(
 		}
 	}
 	//右手圓周路徑
-	float rR = sqrt(pow(R_starP.at(DEF_X) - arc_cen.at(DEF_X), 2) + pow(R_starP.at(DEF_Y) - arc_cen.at(DEF_Y), 2));//右手旋轉半徑
-	float ini_rad_R = DEF_PI + atan((R_starP.at(DEF_Y) - arc_cen.at(DEF_Y)) / (R_starP.at(DEF_X) - arc_cen.at(DEF_X)));//旋轉時的起始旋轉角度
+	double rR = sqrt(pow(R_starP.at(DEF_X) - arc_cen.at(DEF_X), 2) + pow(R_starP.at(DEF_Y) - arc_cen.at(DEF_Y), 2));//右手旋轉半徑
+	double ini_rad_R = DEF_PI + atan((R_starP.at(DEF_Y) - arc_cen.at(DEF_Y)) / (R_starP.at(DEF_X) - arc_cen.at(DEF_X)));//旋轉時的起始旋轉角度
 
 																													   //左手圓周路徑
-	float rL = sqrt(pow(L_starP.at(DEF_X) - arc_cen.at(DEF_X), 2) + pow(L_starP.at(DEF_Y) - arc_cen.at(DEF_Y), 2));
-	float ini_rad_L = atan((L_starP.at(DEF_Y) - arc_cen.at(DEF_Y)) / (L_starP.at(DEF_X) - arc_cen.at(DEF_X)));
+	double rL = sqrt(pow(L_starP.at(DEF_X) - arc_cen.at(DEF_X), 2) + pow(L_starP.at(DEF_Y) - arc_cen.at(DEF_Y), 2));
+	double ini_rad_L = atan((L_starP.at(DEF_Y) - arc_cen.at(DEF_Y)) / (L_starP.at(DEF_X) - arc_cen.at(DEF_X)));
 
 	LARGE_INTEGER nFreq;
 	LARGE_INTEGER nBeginTime;
@@ -1262,12 +1265,12 @@ void RotateMoveTo(
 	CStaArray PathPlanPoint_R(0, 0, 0, 0, 0, 0, 0);
 	CStaArray PathPlanPoint_L(0, 0, 0, 0, 0, 0, 0);
 
-	for (float t = 0; t <= CostTime; t += gCycleT)
+	for (double t = 0; t <= CostTime; t += gCycleT)
 	{
 		QueryPerformanceCounter(&nBeginTime); //Record cycle start time
 
-		PathPlanPoint_R.m_arr[DEF_X] = arc_cen.at(DEF_X) + (float)(rR*(cos(rot_rad*t / CostTime + ini_rad_R)));
-		PathPlanPoint_R.m_arr[DEF_Y] = arc_cen.at(DEF_Y) + (float)(rR*(sin(rot_rad*t / CostTime + ini_rad_R)));
+		PathPlanPoint_R.m_arr[DEF_X] = arc_cen.at(DEF_X) + rR*(cos(rot_rad*t / CostTime + ini_rad_R));
+		PathPlanPoint_R.m_arr[DEF_Y] = arc_cen.at(DEF_Y) + rR*(sin(rot_rad*t / CostTime + ini_rad_R));
 		PathPlanPoint_R.m_arr[DEF_Z] = arc_cen.at(DEF_Z);
 		PathPlanPoint_R.m_arr[DEF_ALPHA] = R_starP.at(DEF_ALPHA) + (R_endP.at(DEF_ALPHA) - R_starP.at(DEF_ALPHA))*t / CostTime;
 		PathPlanPoint_R.m_arr[DEF_BETA] = R_starP.at(DEF_BETA) + (R_endP.at(DEF_BETA) - R_starP.at(DEF_BETA))*t / CostTime;
@@ -1275,8 +1278,8 @@ void RotateMoveTo(
 		PathPlanPoint_R.m_arr[DEF_REDNT_ALPHA] = R_starP.at(DEF_REDNT_ALPHA) + (R_endP.at(DEF_REDNT_ALPHA) - R_starP.at(DEF_REDNT_ALPHA))*t / CostTime;
 
 
-		PathPlanPoint_L.m_arr[DEF_X] = arc_cen.at(DEF_X) + (float)(rL*(cos(rot_rad*t / CostTime + ini_rad_L)));
-		PathPlanPoint_L.m_arr[DEF_Y] = arc_cen.at(DEF_Y) + (float)(rL*(sin(rot_rad*t / CostTime + ini_rad_L)));
+		PathPlanPoint_L.m_arr[DEF_X] = arc_cen.at(DEF_X) + rL*(cos(rot_rad*t / CostTime + ini_rad_L));
+		PathPlanPoint_L.m_arr[DEF_Y] = arc_cen.at(DEF_Y) + rL*(sin(rot_rad*t / CostTime + ini_rad_L));
 		PathPlanPoint_L.m_arr[DEF_Z] = arc_cen.at(DEF_Z);
 		PathPlanPoint_L.m_arr[DEF_ALPHA] = L_starP.at(DEF_ALPHA) + (L_endP.at(DEF_ALPHA) - L_starP.at(DEF_ALPHA))*t / CostTime;
 		PathPlanPoint_L.m_arr[DEF_BETA] = L_starP.at(DEF_BETA) + (L_endP.at(DEF_BETA) - L_starP.at(DEF_BETA))*t / CostTime;
@@ -2903,7 +2906,7 @@ int MoveToPoint(int RLHand,double Point[7], double vel_deg)  //point[x,y,z,alpha
 	return 0;
 }
 
-int MoveToPoint_Dual(double Point_R[7],double Point_L[7])
+int MoveToPoint_Dual(double current_theta_deg_R[7],double Point_R[7], double current_theta_deg_L[7],double Point_L[7])
 {
 	const double linkL[6]={L0,L1,L2,L3,L4,L5};
 	double base_R[3]={0,-L0,0};
@@ -2981,26 +2984,22 @@ int MoveToPoint_Dual(double Point_R[7],double Point_L[7])
 	}
 
 	//==calculate the velocity in joint space
-	static CStaArray last_theta_rad_R=theta_rad_R;//initial first time
-	static CStaArray last_theta_rad_L=theta_rad_L;
+	CStaArray cur_theta_deg_R = { current_theta_deg_R[Index_AXIS1],current_theta_deg_R[Index_AXIS2],current_theta_deg_R[Index_AXIS3],current_theta_deg_R[Index_AXIS4],current_theta_deg_R[Index_AXIS5],current_theta_deg_R[Index_AXIS6],current_theta_deg_R[Index_AXIS7] };
+	CStaArray cur_theta_deg_L = { current_theta_deg_L[Index_AXIS1],current_theta_deg_L[Index_AXIS2],current_theta_deg_L[Index_AXIS3],current_theta_deg_L[Index_AXIS4],current_theta_deg_L[Index_AXIS5],current_theta_deg_L[Index_AXIS6],current_theta_deg_L[Index_AXIS7] };
 
-	//add 
 	static CStaArray theta_deg_R = theta_rad_R*DEF_RATIO_RAD_TO_DEG;
 	static CStaArray theta_deg_L = theta_rad_L*DEF_RATIO_RAD_TO_DEG;
-	static CStaArray last_theta_deg_R = theta_deg_R;
-	static CStaArray last_theta_deg_L = theta_deg_L;
-
 
 	theta_deg_R = theta_rad_R*DEF_RATIO_RAD_TO_DEG;
 	theta_deg_L = theta_rad_L*DEF_RATIO_RAD_TO_DEG;
+
 	double speed_ratio = 1;
-	double keep_deg = 20;
-	CStaArray profile_vel_R = (theta_deg_R - last_theta_deg_R)*speed_ratio / gCycleT;//first time, theta_deg_R=last_theta_deg_R so this is zero
-	CStaArray profile_vel_L = (theta_deg_L - last_theta_deg_L)*speed_ratio / gCycleT;
+	double keep_deg = 30;
+	CStaArray profile_vel_R = (theta_deg_R - cur_theta_deg_R)*speed_ratio / gCycleT;//first time, theta_deg_R=last_theta_deg_R so this is zero
+	CStaArray profile_vel_L = (theta_deg_L - cur_theta_deg_L)*speed_ratio / gCycleT;
 
 	CStaArray profile_acc_R = profile_vel_R*profile_vel_R / (2 * keep_deg);
 	CStaArray profile_acc_L = profile_vel_L*profile_vel_L / (2 * keep_deg);
-
 
 	CStaArray profile_vel_pus_R = profile_vel_R*DEF_RATIO_VEL_DEG_TO_PUS_DXL2;
 	CStaArray profile_vel_pus_L = profile_vel_L*DEF_RATIO_VEL_DEG_TO_PUS_DXL2;
@@ -3018,10 +3017,6 @@ int MoveToPoint_Dual(double Point_R[7],double Point_L[7])
 	//const float speed_ratio=0.9f;//use the speed ratio to set a speed that cannot achieve the goal before next command to prevent the shake problem
 	//CStaArray vel_pus_R=(theta_rad_R-last_theta_rad_R)*DEF_RATIO_VEL_RAD_TO_PUS_DXL2*(speed_ratio/gCycleT); //vel_deg=deg/s  0.684deg/s~702deg/s
 	//CStaArray vel_pus_L=(theta_rad_L-last_theta_rad_L)*DEF_RATIO_VEL_RAD_TO_PUS_DXL2*(speed_ratio/gCycleT);
-
-
-	last_theta_deg_R=theta_deg_R;
-	last_theta_deg_L=theta_deg_L;
 
 	//==output to motor==//
 	unsigned short int vel_pus_R_int[MAX_AXIS_NUM]={0};
