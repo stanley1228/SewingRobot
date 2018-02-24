@@ -287,9 +287,9 @@ enum{
 #define AXISR6_POS_P_GAIN	32
 #define AXISR7_POS_P_GAIN	32
 
-#define AXISL1_POS_P_GAIN	40		
+#define AXISL1_POS_P_GAIN	800		
 #define AXISL2_POS_P_GAIN	32
-#define AXISL3_POS_P_GAIN	32
+#define AXISL3_POS_P_GAIN	3000
 #define AXISL4_POS_P_GAIN	3000
 #define AXISL5_POS_P_GAIN	32
 #define AXISL6_POS_P_GAIN	32
@@ -306,8 +306,8 @@ enum{
 
 #define AXISL1_POS_I_GAIN	20	
 #define AXISL2_POS_I_GAIN	15
-#define AXISL3_POS_I_GAIN	15
-#define AXISL4_POS_I_GAIN	10
+#define AXISL3_POS_I_GAIN	40
+#define AXISL4_POS_I_GAIN	15
 #define AXISL5_POS_I_GAIN	15
 #define AXISL6_POS_I_GAIN	15
 #define AXISL7_POS_I_GAIN	15
@@ -533,6 +533,7 @@ void LineMoveTo(int Coordinate,CStaArray &L_starP,CStaArray &L_endP,CStaArray &R
 void RotateMoveTo(int Coordinate, CStaArray &L_starP,CStaArray &L_endP,CStaArray &R_starP,CStaArray &R_endP,CStaArray &arc_cen,double rot_rad, double CostTime);
 void IKOutputToArm(CStaArray &PathPlanPoint_R,CStaArray &PathPlanPoint_L);
 void TestMotorPID();
+void RecordMotor();
 
 int Output_to_Dynamixel(int RLHand,const double *Ang_rad,const unsigned short int *velocity) ;
 int Output_to_Dynamixel_Dual(const double *Ang_rad_R,const unsigned short int *velocity_R, const unsigned short int *acc_R,const double *Ang_rad_L,const unsigned short int *velocity_L, const unsigned short int *acc_L);

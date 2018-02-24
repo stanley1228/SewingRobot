@@ -141,12 +141,11 @@ void CSewingRobotDlg::OnBnClickedBtnIniDxl()
 
 void CSewingRobotDlg::OnBnClickedBtnSewprocess()
 {
-
-	
-	//Torque_Switch(1);
 	//PID_Setting_Dual();
+	//Torque_Switch(1);
 	//SetAllAccTo(50); //50 deg/acc^
 	TestSewingAction();
+	//RecordMotor();
 	//ROM_Setting_Dual();
 	//TestMotorPID();
 	//TestRead_pos();

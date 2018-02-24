@@ -1185,6 +1185,64 @@ void TestMotorPID()
 	
 }
 
+void RecordMotor()
+{
+	//Torque_Switch(1);
+
+	double costTime = 10;
+	double CYCLE_TIME = 0.02;
+
+	LARGE_INTEGER nFreq;
+	LARGE_INTEGER nBeginTime;
+	LARGE_INTEGER nEndTime;
+	QueryPerformanceFrequency(&nFreq);
+
+	std::fstream fileAxis3;
+	fileAxis3.open("C://stanley//Axis3.csv", ios::out | ios::trunc);
+
+	int cnt = 0;
+
+	for (double t = 0; t <= costTime; t += CYCLE_TIME)
+	{
+		cnt++;
+
+		QueryPerformanceCounter(&nBeginTime); //Record cycle start time
+
+		//==calculate cartisian point==//
+		double theta_deg_cmd = 0;
+		unsigned long theta_pus_cmd = 0;
+
+		//==read back==//
+		double theta_deg_fb = 0;
+		double theta_pus_fb = 0;
+		theta_pus_fb = dxl2_read_dword(gMapLAxisID[Index_AXIS3], PRESENT_POS);
+		theta_pus_fb -= gr2m_offset_pulse_L[Index_AXIS3]; //motor to robot offset =>minus offset
+		theta_deg_fb = theta_pus_fb*DEF_RATIO_PUS_TO_DEG;
+
+		short int load = 0;
+		double LoadPercent = 0;
+		load = dxl2_read_word(gMapLAxisID[Index_AXIS3], PRESENT_CURRENT);
+		LoadPercent = (double)abs(load) / 1941 * 100;//dxl2
+		char buffer[100];
+		int k = 0;
+		k = sprintf_s(buffer, sizeof(buffer), "%4.3f,%4.1f,%4.1f,%4.1f\n", t, theta_deg_cmd, theta_deg_fb, LoadPercent);
+		fileAxis3.write(buffer, k);
+
+		do
+		{
+			Sleep(0);
+			QueryPerformanceCounter(&nEndTime);
+			//printf("%f\n",(double)(nEndTime.QuadPart-nBeginTime.QuadPart)*1000/(double)nFreq.QuadPart);
+		} while ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) / (double)nFreq.QuadPart < CYCLE_TIME);
+	}
+
+	//dxl2_write_byte(gMapLAxisID[Index_AXIS4], TORQUE_ENABLE, 0);
+
+	fileAxis3.close();
+
+}
+
+
 void LineMoveTo(int Coordinate,CStaArray &L_starP, CStaArray &L_endP, CStaArray &R_starP, CStaArray &R_endP, double CostTime)
 {
 	//==transfer frame coordinate to robot coordinate==//
