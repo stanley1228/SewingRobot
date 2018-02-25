@@ -144,7 +144,8 @@ void CSewingRobotDlg::OnBnClickedBtnSewprocess()
 	//PID_Setting_Dual();
 	//Torque_Switch(1);
 	//SetAllAccTo(50); //50 deg/acc^
-	TestSewingAction();
+	//TestSewingAction();
+	TestRead_pos();
 	//RecordMotor();
 	//ROM_Setting_Dual();
 	//TestMotorPID();
@@ -264,6 +265,9 @@ void CSewingRobotDlg::OnBnClickedBtnTorqueDisable()
 void CSewingRobotDlg::OnBnClickedBtnMovetoInit()
 {
 	// TODO: 在此加入控制項告知處理常式程式碼
+	PID_Setting_Dual();
+	Torque_Switch(1);
+	SetAllAccTo(30); //50 deg/acc^
 	CStaArray R_IniP(-90, -90, 0, 50, 0, 0, -50);
 	CStaArray L_IniP(-90, 90, 0, -90, 0, 0, 90);
 	MoveToInitailPoint(DEF_OBJFRAME_COOR,R_IniP, L_IniP);
