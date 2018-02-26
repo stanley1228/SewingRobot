@@ -4553,12 +4553,12 @@ void GetObjCornerCoorFromImage()
 	rt = Output_to_Dynamixel(DEF_LEFT_HAND, JointAng_Lcorner_cen_rad_L.m_arr, velocity);
 
 	//==Hold gripper
-	//int IODelayTime = 1000;
-	//int HoldTime = 800;
-	//int RelTime = 800;
-	//gpF446RE->Gripper_Hold(DEF_RIGHT_HAND, true, HoldTime);
-	//gpF446RE->Gripper_Hold(DEF_LEFT_HAND, true, HoldTime);
-	//Sleep(IODelayTime);
+	int IODelayTime = 1000;
+	int HoldTime = 800;
+	int RelTime = 800;
+	gpF446RE->Gripper_Hold(DEF_RIGHT_HAND, true, HoldTime);
+	gpF446RE->Gripper_Hold(DEF_LEFT_HAND, true, HoldTime);
+	Sleep(IODelayTime);
 
 	//==move to up of corner center
 	//CStaArray JointAng_Lcorner_up_deg_L = { -57,62,71,135,-8,12,-73 };
@@ -4571,24 +4571,17 @@ void GetObjCornerCoorFromImage()
 
 	CStaArray pos_Rcorner_up_deg_R(233, -135, -97, 50, 0, 0, -50);
 	double vel_deg_R = 20;
-	MoveToPoint(DEF_RIGHT_HAND, pos_Rcorner_up_deg_R.m_arr, vel_deg_R);
+	//MoveToPoint(DEF_RIGHT_HAND, pos_Rcorner_up_deg_R.m_arr, vel_deg_R);
 	
 	CStaArray pos_Lcorner_up_deg_L(233, 45, -97, -80, 0, 0, 40);
 	double vel_deg_L = 20;
-	MoveToPoint(DEF_LEFT_HAND, pos_Lcorner_up_deg_L.m_arr, vel_deg_L);
-	//MoveToInitailPoint(DEF_ROBOT_COOR, pos_Rcorner_up_deg_R, pos_Lcorner_up_deg_L);
+	//MoveToPoint(DEF_LEFT_HAND, pos_Lcorner_up_deg_L.m_arr, vel_deg_L);
+	MoveToInitailPoint(DEF_ROBOT_COOR, pos_Rcorner_up_deg_R, pos_Lcorner_up_deg_L);
 
 	//move to initial point
 	CStaArray R_IniP(-90, -90, 0, 50, 0, 0, -50);
 	CStaArray L_IniP(-90, 90, 0, -90, 0, 0, 90);
 	MoveToInitailPoint(DEF_OBJFRAME_COOR, R_IniP, L_IniP);
-
-
-
-
-
-
-
 
 }
 
