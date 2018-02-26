@@ -640,65 +640,69 @@ void TestRead_pos()
 	while (true)
 	{
 		////==Read right hand
-		//rt = Read_pos(DEF_RIGHT_HAND, pos_deg_R, DEF_UNIT_DEG);
-
-		//if (rt == 0)
-		//{
-		//	for(int i=Index_AXIS1;i<=Index_AXIS7;i++)
-		//	{
-		//		_cprintf("f%d:%3.0f, ",gMapAxisNO[i],pos_deg_R[i]);
-		//	}
-		//	_cprintf("\n");
-
-
-		//	n = sprintf_s(buffer, sizeof(buffer), "%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst, pos_deg_R[Index_AXIS1], pos_deg_R[Index_AXIS2], pos_deg_R[Index_AXIS3], pos_deg_R[Index_AXIS4], pos_deg_R[Index_AXIS5], pos_deg_R[Index_AXIS6], pos_deg_R[Index_AXIS7]);
-		//	gfileR.write(buffer, n);
-
-		//	memcpy(pos_deg_last_ok_R, pos_deg_R, sizeof(pos_deg_last_ok_R));
-		//}
-		//else //讀取失敗時，拿前一筆來補
-		//{
-		//	//for(int i=Index_AXIS1;i<=Index_AXIS7;i++)
-		//	//{
-		//	//	printf("f%d:%3.0f, ",gMapAxisNO[i],pos_deg_last_ok_R[i]);
-		//	//}
-		//	_cprintf("\n");
-		//	
-		//	n = sprintf_s(buffer, sizeof(buffer),"%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst, pos_deg_last_ok_R[Index_AXIS1], pos_deg_last_ok_R[Index_AXIS2], pos_deg_last_ok_R[Index_AXIS3], pos_deg_last_ok_R[Index_AXIS4], pos_deg_last_ok_R[Index_AXIS5], pos_deg_last_ok_R[Index_AXIS6], pos_deg_last_ok_R[Index_AXIS7]);
-		//	gfileR.write(buffer, n);
-		//}
-
-		//==Read left hand
-		rt = Read_pos(DEF_LEFT_HAND, pos_deg_L, DEF_UNIT_DEG);
+		rt = Read_pos(DEF_RIGHT_HAND, pos_deg_R, DEF_UNIT_DEG);
 
 		if (rt == 0)
 		{
 			for(int i=Index_AXIS1;i<=Index_AXIS7;i++)
 			{
-				_cprintf("f%d:%3.0f, ",gMapAxisNO[i],pos_deg_L[i]);
+				_cprintf("f%d:%3.0f, ",gMapAxisNO[i],pos_deg_R[i]);
 			}
 			_cprintf("\n");
 
-			n = sprintf_s(buffer, sizeof(buffer), "%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst, pos_deg_L[Index_AXIS1], pos_deg_L[Index_AXIS2], pos_deg_L[Index_AXIS3], pos_deg_L[Index_AXIS4], pos_deg_L[Index_AXIS5], pos_deg_L[Index_AXIS6], pos_deg_L[Index_AXIS7]);
-			gfileL.write(buffer, n);
 
-			memcpy(pos_deg_last_ok_L, pos_deg_L, sizeof(pos_deg_last_ok_L));
+			n = sprintf_s(buffer, sizeof(buffer), "%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst, pos_deg_R[Index_AXIS1], pos_deg_R[Index_AXIS2], pos_deg_R[Index_AXIS3], pos_deg_R[Index_AXIS4], pos_deg_R[Index_AXIS5], pos_deg_R[Index_AXIS6], pos_deg_R[Index_AXIS7]);
+			gfileR.write(buffer, n);
+
+			memcpy(pos_deg_last_ok_R, pos_deg_R, sizeof(pos_deg_last_ok_R));
 		}
 		else //讀取失敗時，拿前一筆來補
 		{
 			//for(int i=Index_AXIS1;i<=Index_AXIS7;i++)
 			//{
-			//	printf("f%d:%3.0f, ",gMapAxisNO[i],pos_deg_last_ok_L[i]);
+			//	printf("f%d:%3.0f, ",gMapAxisNO[i],pos_deg_last_ok_R[i]);
 			//}
-			printf("\n");
-
-			n = sprintf_s(buffer, sizeof(buffer), "%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst, pos_deg_last_ok_L[Index_AXIS1], pos_deg_last_ok_L[Index_AXIS2], pos_deg_last_ok_L[Index_AXIS3], pos_deg_last_ok_L[Index_AXIS4], pos_deg_last_ok_L[Index_AXIS5], pos_deg_last_ok_L[Index_AXIS6], pos_deg_last_ok_L[Index_AXIS7]);
-			gfileL.write(buffer, n);
+			_cprintf("\n");
+			
+			n = sprintf_s(buffer, sizeof(buffer),"%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst, pos_deg_last_ok_R[Index_AXIS1], pos_deg_last_ok_R[Index_AXIS2], pos_deg_last_ok_R[Index_AXIS3], pos_deg_last_ok_R[Index_AXIS4], pos_deg_last_ok_R[Index_AXIS5], pos_deg_last_ok_R[Index_AXIS6], pos_deg_last_ok_R[Index_AXIS7]);
+			gfileR.write(buffer, n);
 		}
+
+		//==Read left hand
+		//rt = Read_pos(DEF_LEFT_HAND, pos_deg_L, DEF_UNIT_DEG);
+
+		//if (rt == 0)
+		//{
+		//	for(int i=Index_AXIS1;i<=Index_AXIS7;i++)
+		//	{
+		//		_cprintf("f%d:%3.0f, ",gMapAxisNO[i],pos_deg_L[i]);
+		//	}
+		//	_cprintf("\n");
+
+		//	n = sprintf_s(buffer, sizeof(buffer), "%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst, pos_deg_L[Index_AXIS1], pos_deg_L[Index_AXIS2], pos_deg_L[Index_AXIS3], pos_deg_L[Index_AXIS4], pos_deg_L[Index_AXIS5], pos_deg_L[Index_AXIS6], pos_deg_L[Index_AXIS7]);
+		//	gfileL.write(buffer, n);
+
+		//	memcpy(pos_deg_last_ok_L, pos_deg_L, sizeof(pos_deg_last_ok_L));
+		//}
+		//else //讀取失敗時，拿前一筆來補
+		//{
+		//	//for(int i=Index_AXIS1;i<=Index_AXIS7;i++)
+		//	//{
+		//	//	printf("f%d:%3.0f, ",gMapAxisNO[i],pos_deg_last_ok_L[i]);
+		//	//}
+		//	printf("\n");
+
+		//	n = sprintf_s(buffer, sizeof(buffer), "%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst, pos_deg_last_ok_L[Index_AXIS1], pos_deg_last_ok_L[Index_AXIS2], pos_deg_last_ok_L[Index_AXIS3], pos_deg_last_ok_L[Index_AXIS4], pos_deg_last_ok_L[Index_AXIS5], pos_deg_last_ok_L[Index_AXIS6], pos_deg_last_ok_L[Index_AXIS7]);
+		//	gfileL.write(buffer, n);
+		//}
 		gstatic_abst++;
 		Sleep(1000);
 		if (gstatic_abst > 10)
+		{
+			gfileR.close();
+			gfileL.close();
 			break;
+		}
 	}
 
 }
@@ -4527,28 +4531,65 @@ void GetObjCornerCoorFromImage()
 	unsigned short int vel_pus = 20;
 	unsigned short int velocity[MAX_AXIS_NUM] = { vel_pus,vel_pus,vel_pus,vel_pus,vel_pus,vel_pus,vel_pus };
 	
+	//move to the position beside corner center
 	CStaArray JointAng_Rcorner_right_deg_R = { -28,-36,13,134,50,22,36 };
 	CStaArray JointAng_Rcorner_right_rad_R = JointAng_Rcorner_right_deg_R*DEF_RATIO_DEG_TO_RAD;
-
-	CStaArray JointAng_Rcorner_cen_deg_R = { -18,-29,1,140,53,3,37};
-	CStaArray JointAng_Rcorner_cen_rad_R = JointAng_Rcorner_cen_deg_R*DEF_RATIO_DEG_TO_RAD;
-
-
-	CStaArray JointAng_Lcorner_left_deg_L = { -2,69,32,124,-15,39,-41};
+	CStaArray JointAng_Lcorner_left_deg_L = { -2,69,32,124,-15,39,-41 };
 	CStaArray JointAng_Lcorner_left_rad_L = JointAng_Lcorner_left_deg_L*DEF_RATIO_DEG_TO_RAD;
-
-	CStaArray JointAng_Lcorner_cen_deg_L = {-10,38,29,122,-42,17,-38 };
-	CStaArray JointAng_Lcorner_cen_rad_L = JointAng_Lcorner_cen_deg_L*DEF_RATIO_DEG_TO_RAD;
-
-
+	
 	int rt = 0;
 	rt = Output_to_Dynamixel(DEF_RIGHT_HAND, JointAng_Rcorner_right_rad_R.m_arr, velocity);
 	rt = Output_to_Dynamixel(DEF_LEFT_HAND, JointAng_Lcorner_left_rad_L.m_arr, velocity);
 
 	Sleep(5000);
 
+	//move to the corner center
+	CStaArray JointAng_Rcorner_cen_deg_R = { -18,-29,1,140,53,3,37 };
+	CStaArray JointAng_Rcorner_cen_rad_R = JointAng_Rcorner_cen_deg_R*DEF_RATIO_DEG_TO_RAD;
+	CStaArray JointAng_Lcorner_cen_deg_L = { -10,38,29,122,-42,17,-38 };
+	CStaArray JointAng_Lcorner_cen_rad_L = JointAng_Lcorner_cen_deg_L*DEF_RATIO_DEG_TO_RAD;
+
 	rt = Output_to_Dynamixel(DEF_RIGHT_HAND, JointAng_Rcorner_cen_rad_R.m_arr, velocity);
 	rt = Output_to_Dynamixel(DEF_LEFT_HAND, JointAng_Lcorner_cen_rad_L.m_arr, velocity);
+
+	//==Hold gripper
+	//int IODelayTime = 1000;
+	//int HoldTime = 800;
+	//int RelTime = 800;
+	//gpF446RE->Gripper_Hold(DEF_RIGHT_HAND, true, HoldTime);
+	//gpF446RE->Gripper_Hold(DEF_LEFT_HAND, true, HoldTime);
+	//Sleep(IODelayTime);
+
+	//==move to up of corner center
+	//CStaArray JointAng_Lcorner_up_deg_L = { -57,62,71,135,-8,12,-73 };
+	//CStaArray JointAng_Lcorner_up_rad_L = JointAng_Lcorner_up_deg_L*DEF_RATIO_DEG_TO_RAD;
+	//rt = Output_to_Dynamixel(DEF_LEFT_HAND, JointAng_Lcorner_up_rad_L.m_arr, velocity);
+
+	//CStaArray JointAng_Rcorner_up_deg_R = { 8,-49,-7,127,58,30,49 };
+	//CStaArray JointAng_Rcorner_up_rad_R = JointAng_Rcorner_up_deg_R*DEF_RATIO_DEG_TO_RAD;
+	//rt = Output_to_Dynamixel(DEF_RIGHT_HAND, JointAng_Rcorner_up_rad_R.m_arr, velocity);
+
+	CStaArray pos_Rcorner_up_deg_R(233, -135, -97, 50, 0, 0, -50);
+	double vel_deg_R = 20;
+	MoveToPoint(DEF_RIGHT_HAND, pos_Rcorner_up_deg_R.m_arr, vel_deg_R);
+	
+	CStaArray pos_Lcorner_up_deg_L(233, 45, -97, -80, 0, 0, 40);
+	double vel_deg_L = 20;
+	MoveToPoint(DEF_LEFT_HAND, pos_Lcorner_up_deg_L.m_arr, vel_deg_L);
+	//MoveToInitailPoint(DEF_ROBOT_COOR, pos_Rcorner_up_deg_R, pos_Lcorner_up_deg_L);
+
+	//move to initial point
+	CStaArray R_IniP(-90, -90, 0, 50, 0, 0, -50);
+	CStaArray L_IniP(-90, 90, 0, -90, 0, 0, 90);
+	MoveToInitailPoint(DEF_OBJFRAME_COOR, R_IniP, L_IniP);
+
+
+
+
+
+
+
+
 }
 
 int dxl2test()
