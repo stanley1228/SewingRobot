@@ -1271,6 +1271,34 @@ void LineMoveTo(int Coordinate,CStaArray &L_starP, CStaArray &L_endP, CStaArray 
 			R_endP.m_arr[i] = R_endP.at(i) + gTranFrameToRobot.at(i);
 		}
 	}
+
+	double const DEF_ACC_L[MAX_AXIS_NUM] = { 30,30,30,30,30,30,30 }; //len/s^2
+	double const DEF_ACC_R[MAX_AXIS_NUM] = { 30,30,30,30,30,30,30 };
+
+	//==calculate if costtime is ok
+	double acc_L_min[MAX_AXIS_NUM] = { 0 };
+	double acc_R_min[MAX_AXIS_NUM] = { 0 };
+	double tb_L[MAX_AXIS_NUM] = { 0 }; //parabolic time
+	double tb_R[MAX_AXIS_NUM] = { 0 };
+
+	for (int i = 0; i<7; i++)//x,y,z,alpha,beta,gamma,rednt_alpha
+	{
+		acc_L_min[i] = 4 * (L_endP.at(i) - L_starP.at(i)) / pow(CostTime, 2);
+
+		if (DEF_ACC_L[i] < abs(acc_L_min[i]))
+			printf("L cost time too short'");
+
+		tb_L[i] = (DEF_ACC_L[i] * CostTime - sqrt(pow(DEF_ACC_L[i], 2)*pow(CostTime, 2) - 4 * DEF_ACC_L[i] * (L_endP.at(i) - L_starP.at(i)))) / (2 * DEF_ACC_L[i]);
+
+
+		acc_R_min[i] = 4 * (R_endP.at(i) - R_starP.at(i)) / pow(CostTime, 2);
+
+		if (DEF_ACC_R[i] < abs(acc_R_min[i]))
+			printf("R cost time too short'");
+
+		tb_R[i] = (DEF_ACC_R[i] * CostTime - sqrt(pow(DEF_ACC_R[i], 2)*pow(CostTime, 2) - 4 * DEF_ACC_R[i] * (R_endP.at(i) - R_starP.at(i)))) / (2 * DEF_ACC_R[i]);
+	}
+
 	LARGE_INTEGER nFreq;
 	LARGE_INTEGER nBeginTime;
 	LARGE_INTEGER nEndTime;
@@ -1283,9 +1311,33 @@ void LineMoveTo(int Coordinate,CStaArray &L_starP, CStaArray &L_endP, CStaArray 
 	{
 		QueryPerformanceCounter(&nBeginTime); //Record cycle start time
 
-		//==calculate cartisian point==//
-		PathPlanPoint_R = R_starP + (R_endP - R_starP)*(t / CostTime);
-		PathPlanPoint_L = L_starP + (L_endP - L_starP)*(t / CostTime);
+		//==calculate cartisian point with parabolic blend==//
+		for (int i = 0; i<7; i++)//x,y,z,alpha,beta,gamma,rednt_alpha
+		{
+			if (L_starP.at(i) == L_endP.at(i))
+				PathPlanPoint_L.m_arr[i] = L_endP.at(i);
+			else
+			{
+				if (t<tb_L[i])
+					PathPlanPoint_L.m_arr[i] = L_starP.at(i) + 0.5*DEF_ACC_L[i] * pow(t, 2);
+				else if (t<CostTime - tb_L[i])
+					PathPlanPoint_L.m_arr[i] = L_starP.at(i) + 0.5*DEF_ACC_L[i] * pow(tb_L[i], 2) + DEF_ACC_L[i] * tb_L[i] * (t - tb_L[i]);
+				else
+					PathPlanPoint_L.m_arr[i] = L_endP.at(i) - 0.5*DEF_ACC_L[i] * pow(CostTime - t, 2);
+			}
+
+			if (R_starP.at(i) == R_endP.at(i))
+				PathPlanPoint_R.m_arr[i] = R_endP.at(i);
+			else
+			{
+				if (t<tb_R[i])
+					PathPlanPoint_R.m_arr[i] = R_starP.at(i) + 0.5*DEF_ACC_R[i] * pow(t, 2);
+				else if (t<CostTime - tb_R[i])
+					PathPlanPoint_R.m_arr[i] = R_starP.at(i) + 0.5*DEF_ACC_R[i] * pow(tb_R[i], 2) + DEF_ACC_R[i] * tb_R[i] * (t - tb_R[i]);
+				else
+					PathPlanPoint_R.m_arr[i] = R_endP.at(i) - 0.5*DEF_ACC_R[i] * pow(CostTime - t, 2);
+			}
+		}
 
 		//==calculate IK and Output to arm==//
 		IKOutputToArm(PathPlanPoint_R, PathPlanPoint_L);
@@ -1325,10 +1377,54 @@ void RotateMoveTo(
 	//右手圓周路徑
 	double rR = sqrt(pow(R_starP.at(DEF_X) - arc_cen.at(DEF_X), 2) + pow(R_starP.at(DEF_Y) - arc_cen.at(DEF_Y), 2));//右手旋轉半徑
 	double ini_rad_R = DEF_PI + atan((R_starP.at(DEF_Y) - arc_cen.at(DEF_Y)) / (R_starP.at(DEF_X) - arc_cen.at(DEF_X)));//旋轉時的起始旋轉角度
-
-																													   //左手圓周路徑
+	
+	//左手圓周路徑
 	double rL = sqrt(pow(L_starP.at(DEF_X) - arc_cen.at(DEF_X), 2) + pow(L_starP.at(DEF_Y) - arc_cen.at(DEF_Y), 2));
 	double ini_rad_L = atan((L_starP.at(DEF_Y) - arc_cen.at(DEF_Y)) / (L_starP.at(DEF_X) - arc_cen.at(DEF_X)));
+
+	//parabolic blend parameter
+	double acc_deg_L = 5; //cartesian space旋轉的角度的角速度
+	double acc_deg_R = 5;
+	double DEF_ACC_L[MAX_AXIS_NUM] = { acc_deg_L*DEF_RATIO_DEG_TO_RAD,acc_deg_L*DEF_RATIO_DEG_TO_RAD,acc_deg_L*DEF_RATIO_DEG_TO_RAD,30,30,30,30 }; //item x,y,z use the same compenet to interpolate unit is rad/s^2   the rest of item's unit is len/s^2
+	double DEF_ACC_R[MAX_AXIS_NUM] = { acc_deg_R*DEF_RATIO_DEG_TO_RAD,acc_deg_R*DEF_RATIO_DEG_TO_RAD,acc_deg_R*DEF_RATIO_DEG_TO_RAD,30,30,30,30 };
+	double acc_L_min[MAX_AXIS_NUM] = { 0 };
+	double acc_R_min[MAX_AXIS_NUM] = { 0 };
+	double tb_L[MAX_AXIS_NUM] = { 0 }; //parabolic time
+	double tb_R[MAX_AXIS_NUM] = { 0 };
+
+	//==calculate tb and check time in this segment is enough==//
+	for (int i = 0; i<7; i++)//x,y,z,alpha,beta,gamma,rednt_alpha
+	{
+		//==left hand==//
+		if (i<3)//前三項 xyz共用同一個差值元素
+			acc_L_min[i] = 4 * rot_rad / (pow(CostTime, 2));
+		else
+			acc_L_min[i] = 4 * (L_endP.at(i) - L_starP.at(i)) / (pow(CostTime, 2));
+
+		if (DEF_ACC_L[i] < abs(acc_L_min[i]))
+			printf("L cost time too short");
+
+		if (i<3)
+			tb_L[i] = (DEF_ACC_L[i] * CostTime - sqrt(pow(DEF_ACC_L[i], 2)*pow(CostTime, 2) - 4 * DEF_ACC_L[i] * rot_rad)) / (2 * DEF_ACC_L[i]);
+		else
+			tb_L[i] = (DEF_ACC_L[i] * CostTime - sqrt(pow(DEF_ACC_L[i], 2)*pow(CostTime, 2) - 4 * DEF_ACC_L[i] * (L_endP.at(i) - L_starP.at(i)))) / (2 * DEF_ACC_L[i]);
+
+		//==right hand==//
+		if (i<3)
+			acc_R_min[i] = 4 * rot_rad / (pow(CostTime, 2));
+		else
+			acc_R_min[i] = 4 * (R_endP.at(i) - R_starP.at(i)) / (pow(CostTime, 2));
+
+
+		if (DEF_ACC_R[i] < abs(acc_R_min[i]))
+			printf("R cost time too short");
+
+		if (i<3)
+			tb_R[i] = (DEF_ACC_R[i] * CostTime - sqrt(pow(DEF_ACC_R[i], 2)*pow(CostTime, 2) - 4 * DEF_ACC_R[i] * rot_rad)) / (2 * DEF_ACC_R[i]);
+		else
+			tb_R[i] = (DEF_ACC_R[i] * CostTime - sqrt(pow(DEF_ACC_R[i], 2)*pow(CostTime, 2) - 4 * DEF_ACC_R[i] * (R_endP.at(i) - R_starP.at(i)))) / (2 * DEF_ACC_R[i]);
+
+	}
 
 	LARGE_INTEGER nFreq;
 	LARGE_INTEGER nBeginTime;
@@ -1338,26 +1434,80 @@ void RotateMoveTo(
 	CStaArray PathPlanPoint_R(0, 0, 0, 0, 0, 0, 0);
 	CStaArray PathPlanPoint_L(0, 0, 0, 0, 0, 0, 0);
 
+	double current_rad_R = 0.0;
+	double current_rad_L = 0.0;
+
 	for (double t = 0; t <= CostTime; t += gCycleT)
 	{
 		QueryPerformanceCounter(&nBeginTime); //Record cycle start time
 
+		for (int i = 0; i<7; i++) //x,y,z,alpha,beta,gamma,rednt_alpha
+		{
+			//==right hand
+			if (i<3)//x,y,z
+			{
+				if (t<tb_R[i])
+					current_rad_R = ini_rad_R + 0.5*DEF_ACC_R[i] * pow(t, 2);
+				else if (t<CostTime - tb_R[i])
+					current_rad_R = ini_rad_R + 0.5*DEF_ACC_R[i] * pow(tb_R[i], 2) + DEF_ACC_R[i] * tb_R[i] * (t - tb_R[i]);
+				else
+					current_rad_R = (ini_rad_R + rot_rad) - 0.5*DEF_ACC_R[i] * pow(CostTime - t, 2);
+
+			}
+			else
+			{
+				if (R_starP.at(i) == R_endP.at(i))
+					PathPlanPoint_R.m_arr[i] = R_endP.at(i);
+				else
+					if (t<tb_R[i])
+						PathPlanPoint_R.m_arr[i] = R_starP.at(i) + 0.5*DEF_ACC_R[i] * pow(t, 2);
+					else if (t<CostTime - tb_R[i])
+						PathPlanPoint_R.m_arr[i] = R_starP.at(i) + 0.5*DEF_ACC_R[i] * pow(tb_R[i], 2) + DEF_ACC_R[i] * tb_R[i] * (t - tb_R[i]);
+					else
+						PathPlanPoint_R.m_arr[i] = R_endP.at(i) - 0.5*DEF_ACC_R[i] * pow(CostTime - t, 2);
+			}
+
+			//==Left hand
+			if (i<3)
+			{
+				if (t<tb_L[i])
+					current_rad_L = ini_rad_L + 0.5*DEF_ACC_L[i] * pow(t, 2);
+				else if (t<CostTime - tb_L[i])
+					current_rad_L = ini_rad_L + 0.5*DEF_ACC_L[i] * pow(tb_L[i], 2) + DEF_ACC_L[i] * tb_L[i] * (t - tb_L[i]);
+				else
+					current_rad_L = (ini_rad_L + rot_rad) - 0.5*DEF_ACC_L[i] * pow(CostTime - t, 2);
+
+				i = 2;// 0~2 calculate the same thing current_rad_L
+			}
+			else
+				if (L_starP.at(i) == L_endP.at(i))
+					PathPlanPoint_L.m_arr[i] = L_endP.at(i);
+				else
+					if (t<tb_L[i])
+						PathPlanPoint_L.m_arr[i] = L_starP.at(i) + 0.5*DEF_ACC_L[i] * pow(t, 2);
+					else if (t<CostTime - tb_L[i])
+						PathPlanPoint_L.m_arr[i] = L_starP.at(i) + 0.5*DEF_ACC_L[i] * pow(tb_L[i], 2) + DEF_ACC_L[i] * tb_L[i] * (t - tb_L[i]);
+					else
+						PathPlanPoint_L.m_arr[i] = L_endP.at(i) - 0.5*DEF_ACC_L[i] * pow(CostTime - t, 2);
+		}
+
+		//==with parabolic==//
 		PathPlanPoint_R.m_arr[DEF_X] = arc_cen.at(DEF_X) + rR*(cos(rot_rad*t / CostTime + ini_rad_R));
 		PathPlanPoint_R.m_arr[DEF_Y] = arc_cen.at(DEF_Y) + rR*(sin(rot_rad*t / CostTime + ini_rad_R));
 		PathPlanPoint_R.m_arr[DEF_Z] = arc_cen.at(DEF_Z);
-		PathPlanPoint_R.m_arr[DEF_ALPHA] = R_starP.at(DEF_ALPHA) + (R_endP.at(DEF_ALPHA) - R_starP.at(DEF_ALPHA))*t / CostTime;
-		PathPlanPoint_R.m_arr[DEF_BETA] = R_starP.at(DEF_BETA) + (R_endP.at(DEF_BETA) - R_starP.at(DEF_BETA))*t / CostTime;
-		PathPlanPoint_R.m_arr[DEF_GAMMA] = R_starP.at(DEF_GAMMA) + (R_endP.at(DEF_GAMMA) - R_starP.at(DEF_GAMMA))*t / CostTime;
-		PathPlanPoint_R.m_arr[DEF_REDNT_ALPHA] = R_starP.at(DEF_REDNT_ALPHA) + (R_endP.at(DEF_REDNT_ALPHA) - R_starP.at(DEF_REDNT_ALPHA))*t / CostTime;
+		//PathPlanPoint_R.m_arr[DEF_ALPHA] = R_starP.at(DEF_ALPHA) + (R_endP.at(DEF_ALPHA) - R_starP.at(DEF_ALPHA))*t / CostTime;
+		//PathPlanPoint_R.m_arr[DEF_BETA] = R_starP.at(DEF_BETA) + (R_endP.at(DEF_BETA) - R_starP.at(DEF_BETA))*t / CostTime;
+		//PathPlanPoint_R.m_arr[DEF_GAMMA] = R_starP.at(DEF_GAMMA) + (R_endP.at(DEF_GAMMA) - R_starP.at(DEF_GAMMA))*t / CostTime;
+		//PathPlanPoint_R.m_arr[DEF_REDNT_ALPHA] = R_starP.at(DEF_REDNT_ALPHA) + (R_endP.at(DEF_REDNT_ALPHA) - R_starP.at(DEF_REDNT_ALPHA))*t / CostTime;
 
 
 		PathPlanPoint_L.m_arr[DEF_X] = arc_cen.at(DEF_X) + rL*(cos(rot_rad*t / CostTime + ini_rad_L));
 		PathPlanPoint_L.m_arr[DEF_Y] = arc_cen.at(DEF_Y) + rL*(sin(rot_rad*t / CostTime + ini_rad_L));
 		PathPlanPoint_L.m_arr[DEF_Z] = arc_cen.at(DEF_Z);
-		PathPlanPoint_L.m_arr[DEF_ALPHA] = L_starP.at(DEF_ALPHA) + (L_endP.at(DEF_ALPHA) - L_starP.at(DEF_ALPHA))*t / CostTime;
-		PathPlanPoint_L.m_arr[DEF_BETA] = L_starP.at(DEF_BETA) + (L_endP.at(DEF_BETA) - L_starP.at(DEF_BETA))*t / CostTime;
-		PathPlanPoint_L.m_arr[DEF_GAMMA] = L_starP.at(DEF_GAMMA) + (L_endP.at(DEF_GAMMA) - L_starP.at(DEF_GAMMA))*t / CostTime;
-		PathPlanPoint_L.m_arr[DEF_REDNT_ALPHA] = L_starP.at(DEF_REDNT_ALPHA) + (L_endP.at(DEF_REDNT_ALPHA) - L_starP.at(DEF_REDNT_ALPHA))*t / CostTime;
+		//PathPlanPoint_L.m_arr[DEF_ALPHA] = L_starP.at(DEF_ALPHA) + (L_endP.at(DEF_ALPHA) - L_starP.at(DEF_ALPHA))*t / CostTime;
+		//PathPlanPoint_L.m_arr[DEF_BETA] = L_starP.at(DEF_BETA) + (L_endP.at(DEF_BETA) - L_starP.at(DEF_BETA))*t / CostTime;
+		//PathPlanPoint_L.m_arr[DEF_GAMMA] = L_starP.at(DEF_GAMMA) + (L_endP.at(DEF_GAMMA) - L_starP.at(DEF_GAMMA))*t / CostTime;
+		//PathPlanPoint_L.m_arr[DEF_REDNT_ALPHA] = L_starP.at(DEF_REDNT_ALPHA) + (L_endP.at(DEF_REDNT_ALPHA) - L_starP.at(DEF_REDNT_ALPHA))*t / CostTime;
 
 		//==calculate IK and Output to arm==//
 		IKOutputToArm(PathPlanPoint_R, PathPlanPoint_L);
@@ -4539,7 +4689,7 @@ void GetObjCornerCoorFromImage()
 	
 	int rt = 0;
 	rt = Output_to_Dynamixel(DEF_RIGHT_HAND, JointAng_Rcorner_right_rad_R.m_arr, velocity);
-	rt = Output_to_Dynamixel(DEF_LEFT_HAND, JointAng_Lcorner_left_rad_L.m_arr, velocity);
+	rt = Output_to_Dynamixel(DEF_LEFT_HAND , JointAng_Lcorner_left_rad_L.m_arr , velocity);
 
 	Sleep(5000);
 
@@ -4577,6 +4727,18 @@ void GetObjCornerCoorFromImage()
 	double vel_deg_L = 20;
 	//MoveToPoint(DEF_LEFT_HAND, pos_Lcorner_up_deg_L.m_arr, vel_deg_L);
 	MoveToInitailPoint(DEF_ROBOT_COOR, pos_Rcorner_up_deg_R, pos_Lcorner_up_deg_L);
+	Sleep(3000);
+
+
+	//右手往Z方向 左手往Z方向
+	CStaArray R_starP(233, -135, -97, 50, 0, 0, -50);
+	CStaArray R_endP(233, -135, 10, 50, 0, 0, -50);
+	CStaArray L_starP(233, 45, -97, -80, 0, 0, 40);
+	CStaArray L_endP(233, 45, 10, -80, 0, 0, 40);
+
+	float CostTime = 3;
+	LineMoveTo(DEF_ROBOT_COOR, L_starP, L_endP, R_starP, R_endP, CostTime);
+
 
 	//move to initial point
 	CStaArray R_IniP(-90, -90, 0, 50, 0, 0, -50);
