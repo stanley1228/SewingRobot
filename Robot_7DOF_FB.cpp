@@ -28,10 +28,10 @@
 #pragma comment(lib,"realsense2.lib")
 
 //#define F446RE_GRIPPER_EN
-//#define CHECK_CARTESIAN_PATH 
+#define CHECK_CARTESIAN_PATH 
 //#define GRIPPER_ON_LATTE
 #define MOVETOPOINT_DUAL
-//#define CHECK_JOINT_PATH  
+#define CHECK_JOINT_PATH  
 //#define CHECK_JOINT_VEL_CMD
 #define MOVE_TO_INITIAL_POINT
 //#define RECORD_JOINT_ANGLE
@@ -40,7 +40,7 @@
 //#define RECORD_JOINT_MOVING
 //#define DEF_WAIT_ENTER
 
-const double gCycleT = 0.1;
+const double gCycleT = 0.2;
 
 std::fstream gfileR;
 std::fstream gfileL;
@@ -1272,8 +1272,8 @@ void LineMoveTo(int Coordinate,CStaArray &L_starP, CStaArray &L_endP, CStaArray 
 		}
 	}
 
-	double const DEF_ACC_L[MAX_AXIS_NUM] = { 30,30,30,30,30,30,30 }; //len/s^2
-	double const DEF_ACC_R[MAX_AXIS_NUM] = { 30,30,30,30,30,30,30 };
+	double const DEF_ACC_L[MAX_AXIS_NUM] = { 100,100,100,100,100,100,100 }; //len/s^2
+	double const DEF_ACC_R[MAX_AXIS_NUM] = { 100,100,100,100,100,100,100 };
 
 	//==calculate if costtime is ok
 	double acc_L_min[MAX_AXIS_NUM] = { 0 };
@@ -1383,10 +1383,10 @@ void RotateMoveTo(
 	double ini_rad_L = atan((L_starP.at(DEF_Y) - arc_cen.at(DEF_Y)) / (L_starP.at(DEF_X) - arc_cen.at(DEF_X)));
 
 	//parabolic blend parameter
-	double acc_deg_L = 5; //cartesian space旋轉的角度的角速度
-	double acc_deg_R = 5;
-	double DEF_ACC_L[MAX_AXIS_NUM] = { acc_deg_L*DEF_RATIO_DEG_TO_RAD,acc_deg_L*DEF_RATIO_DEG_TO_RAD,acc_deg_L*DEF_RATIO_DEG_TO_RAD,30,30,30,30 }; //item x,y,z use the same compenet to interpolate unit is rad/s^2   the rest of item's unit is len/s^2
-	double DEF_ACC_R[MAX_AXIS_NUM] = { acc_deg_R*DEF_RATIO_DEG_TO_RAD,acc_deg_R*DEF_RATIO_DEG_TO_RAD,acc_deg_R*DEF_RATIO_DEG_TO_RAD,30,30,30,30 };
+	double acc_deg_L = 60; //cartesian space旋轉的角度的角速度
+	double acc_deg_R = 60;
+	double DEF_ACC_L[MAX_AXIS_NUM] = { acc_deg_L*DEF_RATIO_DEG_TO_RAD,acc_deg_L*DEF_RATIO_DEG_TO_RAD,acc_deg_L*DEF_RATIO_DEG_TO_RAD,100,100,100,100 }; //item x,y,z use the same compenet to interpolate unit is rad/s^2   the rest of item's unit is len/s^2
+	double DEF_ACC_R[MAX_AXIS_NUM] = { acc_deg_R*DEF_RATIO_DEG_TO_RAD,acc_deg_R*DEF_RATIO_DEG_TO_RAD,acc_deg_R*DEF_RATIO_DEG_TO_RAD,100,100,100,100 };
 	double acc_L_min[MAX_AXIS_NUM] = { 0 };
 	double acc_R_min[MAX_AXIS_NUM] = { 0 };
 	double tb_L[MAX_AXIS_NUM] = { 0 }; //parabolic time
@@ -1492,22 +1492,13 @@ void RotateMoveTo(
 		}
 
 		//==with parabolic==//
-		PathPlanPoint_R.m_arr[DEF_X] = arc_cen.at(DEF_X) + rR*(cos(rot_rad*t / CostTime + ini_rad_R));
-		PathPlanPoint_R.m_arr[DEF_Y] = arc_cen.at(DEF_Y) + rR*(sin(rot_rad*t / CostTime + ini_rad_R));
-		PathPlanPoint_R.m_arr[DEF_Z] = arc_cen.at(DEF_Z);
-		//PathPlanPoint_R.m_arr[DEF_ALPHA] = R_starP.at(DEF_ALPHA) + (R_endP.at(DEF_ALPHA) - R_starP.at(DEF_ALPHA))*t / CostTime;
-		//PathPlanPoint_R.m_arr[DEF_BETA] = R_starP.at(DEF_BETA) + (R_endP.at(DEF_BETA) - R_starP.at(DEF_BETA))*t / CostTime;
-		//PathPlanPoint_R.m_arr[DEF_GAMMA] = R_starP.at(DEF_GAMMA) + (R_endP.at(DEF_GAMMA) - R_starP.at(DEF_GAMMA))*t / CostTime;
-		//PathPlanPoint_R.m_arr[DEF_REDNT_ALPHA] = R_starP.at(DEF_REDNT_ALPHA) + (R_endP.at(DEF_REDNT_ALPHA) - R_starP.at(DEF_REDNT_ALPHA))*t / CostTime;
+		PathPlanPoint_R.m_arr[DEF_X] = arc_cen.at(DEF_X) + rR*cos(current_rad_R);
+		PathPlanPoint_R.m_arr[DEF_Y] = arc_cen.at(DEF_Y) + rR*sin(current_rad_R);
+		PathPlanPoint_R.m_arr[DEF_Z] = arc_cen.at(DEF_Z);		
 
-
-		PathPlanPoint_L.m_arr[DEF_X] = arc_cen.at(DEF_X) + rL*(cos(rot_rad*t / CostTime + ini_rad_L));
-		PathPlanPoint_L.m_arr[DEF_Y] = arc_cen.at(DEF_Y) + rL*(sin(rot_rad*t / CostTime + ini_rad_L));
+		PathPlanPoint_L.m_arr[DEF_X] = arc_cen.at(DEF_X) + rL*cos(current_rad_L);
+		PathPlanPoint_L.m_arr[DEF_Y] = arc_cen.at(DEF_Y) + rL*sin(current_rad_L);
 		PathPlanPoint_L.m_arr[DEF_Z] = arc_cen.at(DEF_Z);
-		//PathPlanPoint_L.m_arr[DEF_ALPHA] = L_starP.at(DEF_ALPHA) + (L_endP.at(DEF_ALPHA) - L_starP.at(DEF_ALPHA))*t / CostTime;
-		//PathPlanPoint_L.m_arr[DEF_BETA] = L_starP.at(DEF_BETA) + (L_endP.at(DEF_BETA) - L_starP.at(DEF_BETA))*t / CostTime;
-		//PathPlanPoint_L.m_arr[DEF_GAMMA] = L_starP.at(DEF_GAMMA) + (L_endP.at(DEF_GAMMA) - L_starP.at(DEF_GAMMA))*t / CostTime;
-		//PathPlanPoint_L.m_arr[DEF_REDNT_ALPHA] = L_starP.at(DEF_REDNT_ALPHA) + (L_endP.at(DEF_REDNT_ALPHA) - L_starP.at(DEF_REDNT_ALPHA))*t / CostTime;
 
 		//==calculate IK and Output to arm==//
 		IKOutputToArm(PathPlanPoint_R, PathPlanPoint_L);
@@ -1669,7 +1660,7 @@ void TestSewingAction()
 	R_endP.SetArray(-90+SewingLength,-90,0,50,0,0,-50);
 	L_starP.SetArray(-90+SewingLength,90+MovOutLen,0,-90,0,0,90);
 	L_endP.SetArray(-90+SewingLength+RelMovLen,90+MovOutLen,0,-60,0,0,90);
-	CostTime=4;
+	CostTime=3;
 	LineMoveTo(DEF_OBJFRAME_COOR,L_starP,L_endP,R_starP,R_endP,CostTime);
 
 	//右手不動 左手往負y移動MovOutLen
@@ -1697,7 +1688,7 @@ void TestSewingAction()
 	L_endP.SetArray(-90,90,0,-90,0,0,90);
 	CStaArray arc_cen(gNeedle_ini_Plate); //旋轉圓心為針在架子上的起始點
 	double rot_rad=0.5*DEF_PI; //旋轉時的起始旋轉角度
-	CostTime=3;
+	CostTime=4;
 	RotateMoveTo(DEF_OBJFRAME_COOR,L_starP,L_endP,R_starP,R_endP,arc_cen,rot_rad,CostTime);
 
 #ifdef F446RE_GRIPPER_EN
@@ -1715,7 +1706,7 @@ void TestSewingAction()
 	R_endP.SetArray(90-MovOutLen,-90-MovOutLen,0,50,0,0,-70);
 	L_starP.SetArray(-90,90,0,-90,0,0,90);
 	L_endP.SetArray(-90,90,0,-90,0,0,90);
-	CostTime=2;
+	CostTime=3;
 	LineMoveTo(DEF_OBJFRAME_COOR,L_starP,L_endP,R_starP,R_endP,CostTime);
 
 	//右手往X負移動RelMovLen  左手不動1 
@@ -1723,7 +1714,7 @@ void TestSewingAction()
 	R_endP.SetArray(90-MovOutLen-RelMovLen,-90-MovOutLen,0,50,0,0,-70);
 	L_starP.SetArray(-90,90,0,-90,0,0,90);
 	L_endP.SetArray(-90,90,0,-90,0,0,90);
-	CostTime=5;
+	CostTime=3;
 	LineMoveTo(DEF_OBJFRAME_COOR,L_starP,L_endP,R_starP,R_endP,CostTime);
 
 	//右手往X往Y正MovOutLen  左手不動1 
@@ -1731,7 +1722,7 @@ void TestSewingAction()
 	R_endP.SetArray(90-RelMovLen,-90,0,50,0,0,-70);
 	L_starP.SetArray(-90,90,0,-90,0,0,90);
 	L_endP.SetArray(-90,90,0,-90,0,0,90);
-	CostTime=2;
+	CostTime=3;
 	LineMoveTo(DEF_OBJFRAME_COOR,L_starP,L_endP,R_starP,R_endP,CostTime);
 
 #ifdef F446RE_GRIPPER_EN

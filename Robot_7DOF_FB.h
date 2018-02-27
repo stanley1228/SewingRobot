@@ -280,7 +280,7 @@ enum{
 
 //==PID P gain==//
 #define AXISR1_POS_P_GAIN	300		
-#define AXISR2_POS_P_GAIN	1000
+#define AXISR2_POS_P_GAIN	1500
 #define AXISR3_POS_P_GAIN	1500
 #define AXISR4_POS_P_GAIN	1000
 #define AXISR5_POS_P_GAIN	500
@@ -297,7 +297,7 @@ enum{
 
 //==PID I gain==//
 #define AXISR1_POS_I_GAIN	20		
-#define AXISR2_POS_I_GAIN	15
+#define AXISR2_POS_I_GAIN	50
 #define AXISR3_POS_I_GAIN	15
 #define AXISR4_POS_I_GAIN	60
 #define AXISR5_POS_I_GAIN	40
