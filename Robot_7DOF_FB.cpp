@@ -27,20 +27,20 @@
 #pragma comment(lib,"opencv_world340d.lib")
 #pragma comment(lib,"realsense2.lib")
 
-//#define F446RE_GRIPPER_EN
-#define CHECK_CARTESIAN_PATH 
+#define F446RE_GRIPPER_EN
+//#define CHECK_CARTESIAN_PATH 
 //#define GRIPPER_ON_LATTE
 #define MOVETOPOINT_DUAL
-#define CHECK_JOINT_PATH  
+//#define CHECK_JOINT_PATH  
 //#define CHECK_JOINT_VEL_CMD
-#define MOVE_TO_INITIAL_POINT
+//#define MOVE_TO_INITIAL_POINT
 //#define RECORD_JOINT_ANGLE
 //#define RECORD_JOINT_VEL
 //#define RECORD_JOINT_LOAD
 //#define RECORD_JOINT_MOVING
 //#define DEF_WAIT_ENTER
 
-const double gCycleT = 0.2;
+const double gCycleT = 0.04;
 
 std::fstream gfileR;
 std::fstream gfileL;
@@ -877,7 +877,7 @@ CStaArray CStaArray::operator-(CStaArray &other)
 }
 
 
-CStaArray gNeedle_RobotF(350,-300,30,0,0,0,0);//針點在手臂坐標系位置   
+CStaArray gNeedle_RobotF(350,-300,50,0,0,0,0);//針點在手臂坐標系位置   
 CStaArray gNeedle_ini_Plate(30,-30,0,0,0,0,0);//下針點在架子plate座標系上的初始點
 CStaArray gTranFrameToRobot=gNeedle_RobotF-gNeedle_ini_Plate;//利用兩個的差值去做比較
 
@@ -920,33 +920,33 @@ void IKOutputToArm(CStaArray &PathPlanPoint_R,CStaArray &PathPlanPoint_L)
 	int rt=0;
 	char buffer[100];
 	//==Read right hand
-	rt=Read_pos(DEF_RIGHT_HAND,pos_deg_R,DEF_UNIT_DEG);
+	//rt=Read_pos(DEF_RIGHT_HAND,pos_deg_R,DEF_UNIT_DEG);
 
-	if(rt==0)
-	{
-		//for(int i=Index_AXIS1;i<=Index_AXIS7;i++)
-		//{
-		//	printf("f%d:%3.0f, ",gMapAxisNO[i],pos_deg_R[i]);
-		//}
-		printf("\n");
+	//if(rt==0)
+	//{
+	//	//for(int i=Index_AXIS1;i<=Index_AXIS7;i++)
+	//	//{
+	//	//	printf("f%d:%3.0f, ",gMapAxisNO[i],pos_deg_R[i]);
+	//	//}
+	//	printf("\n");
 
-		
-		n=sprintf_s(buffer,sizeof(buffer),"%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst,pos_deg_R[Index_AXIS1],pos_deg_R[Index_AXIS2],pos_deg_R[Index_AXIS3],pos_deg_R[Index_AXIS4],pos_deg_R[Index_AXIS5],pos_deg_R[Index_AXIS6],pos_deg_R[Index_AXIS7]);
-		gfileSewJointFB_R.write(buffer,n);
-		
-		memcpy(pos_deg_last_ok_R,pos_deg_R,sizeof(pos_deg_last_ok_R));
-	}
-	else //讀取失敗時，拿前一筆來補
-	{
-		//for(int i=Index_AXIS1;i<=Index_AXIS7;i++)
-		//{
-		//	printf("f%d:%3.0f, ",gMapAxisNO[i],pos_deg_last_ok_R[i]);
-		//}
-		printf("\n");
+	//	
+	//	n=sprintf_s(buffer,sizeof(buffer),"%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst,pos_deg_R[Index_AXIS1],pos_deg_R[Index_AXIS2],pos_deg_R[Index_AXIS3],pos_deg_R[Index_AXIS4],pos_deg_R[Index_AXIS5],pos_deg_R[Index_AXIS6],pos_deg_R[Index_AXIS7]);
+	//	gfileSewJointFB_R.write(buffer,n);
+	//	
+	//	memcpy(pos_deg_last_ok_R,pos_deg_R,sizeof(pos_deg_last_ok_R));
+	//}
+	//else //讀取失敗時，拿前一筆來補
+	//{
+	//	//for(int i=Index_AXIS1;i<=Index_AXIS7;i++)
+	//	//{
+	//	//	printf("f%d:%3.0f, ",gMapAxisNO[i],pos_deg_last_ok_R[i]);
+	//	//}
+	//	printf("\n");
 
-		n=sprintf_s(buffer,sizeof(buffer),"%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst,pos_deg_last_ok_R[Index_AXIS1],pos_deg_last_ok_R[Index_AXIS2],pos_deg_last_ok_R[Index_AXIS3],pos_deg_last_ok_R[Index_AXIS4],pos_deg_last_ok_R[Index_AXIS5],pos_deg_last_ok_R[Index_AXIS6],pos_deg_last_ok_R[Index_AXIS7]);
-		gfileSewJointFB_R.write(buffer,n);
-	}
+	//	n=sprintf_s(buffer,sizeof(buffer),"%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst,pos_deg_last_ok_R[Index_AXIS1],pos_deg_last_ok_R[Index_AXIS2],pos_deg_last_ok_R[Index_AXIS3],pos_deg_last_ok_R[Index_AXIS4],pos_deg_last_ok_R[Index_AXIS5],pos_deg_last_ok_R[Index_AXIS6],pos_deg_last_ok_R[Index_AXIS7]);
+	//	gfileSewJointFB_R.write(buffer,n);
+	//}
 
 	//==Read left hand
 	rt=Read_pos(DEF_LEFT_HAND,pos_deg_L,DEF_UNIT_DEG);
@@ -1592,7 +1592,7 @@ void TestSewingAction()
 
 	//==static parameter==//
 	const float MovOutLen=50;//移出抓取點的長度
-	const float SewingLength=60;//縫紉行程
+	const float SewingLength=50;//縫紉行程
 	const float RelMovLen=180;//框架抓取點間距
 
 	//==MoveToInitailPoint==//
@@ -1610,13 +1610,13 @@ void TestSewingAction()
 #ifdef F446RE_GRIPPER_EN
 	//抬壓腳 抬
 	gpF446RE->FootLifter(true);
-	Sleep(5000);
+	Sleep(2000);
 
-	//右手夾 左手夾
-	gpF446RE->Gripper_Hold(DEF_RIGHT_HAND,true,HoldTime);
-	Sleep(IODelayTime);
-	gpF446RE->Gripper_Hold(DEF_LEFT_HAND,true,HoldTime);
-	Sleep(IODelayTime);
+	////右手夾 左手夾
+	//gpF446RE->Gripper_Hold(DEF_RIGHT_HAND,true,HoldTime);
+	//Sleep(IODelayTime);
+	//gpF446RE->Gripper_Hold(DEF_LEFT_HAND,true,HoldTime);
+	//Sleep(IODelayTime);
 
 	//抬壓腳 壓
 	gpF446RE->FootLifter(false);
@@ -1628,8 +1628,8 @@ void TestSewingAction()
 #endif
 
 	//右手往正X SewingLenth 左手往正X 縫線長度 SewingLenth
-	CStaArray R_starP(-90,-90,0,50,0,0,-50);
-	CStaArray R_endP(-90+SewingLength,-90,0,50,0,0,-50);
+	CStaArray R_starP(-90,-90,0,70,0,0,-50);
+	CStaArray R_endP(-90+SewingLength,-90,0,70,0,0,-50);
 	CStaArray L_starP(-90,90,0,-90,0,0,90);
 	CStaArray L_endP(-90+SewingLength,90,0,-90,0,0,90);
 
@@ -1648,26 +1648,27 @@ void TestSewingAction()
 #endif
 
 	//右手不動 左手往正y移動 
-	R_starP.SetArray(-90+SewingLength,-90,0,50,0,0,-50);
 	R_endP.SetArray(-90+SewingLength,-90,0,50,0,0,-50);
-	L_starP.SetArray(-90+SewingLength,90,0,-90,0,0,90);
-	L_endP.SetArray(-90+SewingLength,90+MovOutLen,0,-90,0,0,90);
+	R_starP.SetArray(-90+SewingLength,-90,0,70,0,0,-50);
+	L_starP.SetArray(-90+SewingLength,90, 0,-90,0,0,90);
+	L_endP.SetArray(-90+SewingLength,90+MovOutLen, 0,-90,0,0,90);
 	CostTime=3;
 	LineMoveTo(DEF_OBJFRAME_COOR,L_starP,L_endP,R_starP,R_endP,CostTime);
 
 	//右手不動 左手往正X 抓取點間隔長度(Release move length)
 	R_starP.SetArray(-90+SewingLength,-90,0,50,0,0,-50);
 	R_endP.SetArray(-90+SewingLength,-90,0,50,0,0,-50);
-	L_starP.SetArray(-90+SewingLength,90+MovOutLen,0,-90,0,0,90);
-	L_endP.SetArray(-90+SewingLength+RelMovLen,90+MovOutLen,0,-60,0,0,90);
+	double z_offset_L = 50;//to overcome left hand to heavy
+	L_starP.SetArray(-90+SewingLength,90+MovOutLen, z_offset_L,-90,0,0,90);
+	L_endP.SetArray(-90+SewingLength+RelMovLen,90+MovOutLen, z_offset_L,-60,0,0,90);
 	CostTime=3;
 	LineMoveTo(DEF_OBJFRAME_COOR,L_starP,L_endP,R_starP,R_endP,CostTime);
 
 	//右手不動 左手往負y移動MovOutLen
 	R_starP.SetArray(-90+SewingLength,-90,0,50,0,0,-50);
 	R_endP.SetArray(-90+SewingLength,-90,0,50,0,0,-50);
-	L_starP.SetArray(-90+SewingLength+RelMovLen,90+MovOutLen,0,-60,0,0,90);
-	L_endP.SetArray(-90+SewingLength+RelMovLen,90,0,-60,0,0,90);
+	L_starP.SetArray(-90+SewingLength+RelMovLen,90+MovOutLen, z_offset_L,-60,0,0,90);
+	L_endP.SetArray(-90+SewingLength+RelMovLen,90, z_offset_L,-60,0,0,90);
 	CostTime=3;
 	LineMoveTo(DEF_OBJFRAME_COOR,L_starP,L_endP,R_starP,R_endP,CostTime);
 
@@ -1697,7 +1698,7 @@ void TestSewingAction()
 	Sleep(IODelayTime);
 
 	//右手開 左手不動
-	gpF446RE->Gripper_Hold(DEF_LEFT_HAND,false,RelTime);
+	gpF446RE->Gripper_Hold(DEF_RIGHT_HAND,false,RelTime);
 	Sleep(IODelayTime);
 #endif
 
@@ -3192,10 +3193,11 @@ int MoveToPoint_Dual(double current_theta_deg_R[7],double Point_R[7], double cur
 
 	for(int i=Index_AXIS1;i<=Index_AXIS7;i++) 
 	{
-		vel_pus_R_int[i] = 30;
-		vel_pus_L_int[i] = 30;
-		acc_pus_R_int[i] = 2;
-		acc_pus_L_int[i] = 2;
+		vel_pus_R_int[i] = 42*DEF_RATIO_VEL_DEG_TO_PUS_DXL2;
+		vel_pus_L_int[i] = 42*DEF_RATIO_VEL_DEG_TO_PUS_DXL2;
+		acc_pus_R_int[i] = 400*DEF_RATIO_ACC_DEG_TO_PUS_DXL2;
+		acc_pus_L_int[i] = 400*DEF_RATIO_ACC_DEG_TO_PUS_DXL2;
+		
 	}
 
 #ifdef CHECK_JOINT_VEL_CMD
@@ -4682,7 +4684,7 @@ void GetObjCornerCoorFromImage()
 	rt = Output_to_Dynamixel(DEF_RIGHT_HAND, JointAng_Rcorner_right_rad_R.m_arr, velocity);
 	rt = Output_to_Dynamixel(DEF_LEFT_HAND , JointAng_Lcorner_left_rad_L.m_arr , velocity);
 
-	Sleep(5000);
+	Sleep(4000);
 
 	//move to the corner center
 	CStaArray JointAng_Rcorner_cen_deg_R = { -18,-29,1,140,53,3,37 };
@@ -4693,11 +4695,13 @@ void GetObjCornerCoorFromImage()
 	rt = Output_to_Dynamixel(DEF_RIGHT_HAND, JointAng_Rcorner_cen_rad_R.m_arr, velocity);
 	rt = Output_to_Dynamixel(DEF_LEFT_HAND, JointAng_Lcorner_cen_rad_L.m_arr, velocity);
 
+	Sleep(3000);
 	//==Hold gripper
 	int IODelayTime = 1000;
 	int HoldTime = 800;
 	int RelTime = 800;
 	gpF446RE->Gripper_Hold(DEF_RIGHT_HAND, true, HoldTime);
+	Sleep(IODelayTime);
 	gpF446RE->Gripper_Hold(DEF_LEFT_HAND, true, HoldTime);
 	Sleep(IODelayTime);
 
@@ -4710,32 +4714,23 @@ void GetObjCornerCoorFromImage()
 	//CStaArray JointAng_Rcorner_up_rad_R = JointAng_Rcorner_up_deg_R*DEF_RATIO_DEG_TO_RAD;
 	//rt = Output_to_Dynamixel(DEF_RIGHT_HAND, JointAng_Rcorner_up_rad_R.m_arr, velocity);
 
-	CStaArray pos_Rcorner_up_deg_R(233, -135, -97, 50, 0, 0, -50);
-	double vel_deg_R = 20;
-	//MoveToPoint(DEF_RIGHT_HAND, pos_Rcorner_up_deg_R.m_arr, vel_deg_R);
+	//CStaArray pos_Rcorner_up_deg_R(233, -135, -97, 50, 0, 0, -50);
+	//double vel_deg_R = 20;
+	////MoveToPoint(DEF_RIGHT_HAND, pos_Rcorner_up_deg_R.m_arr, vel_deg_R);
+	//
+	//CStaArray pos_Lcorner_up_deg_L(233, 45, -97, -80, 0, 0, 40);
+	//double vel_deg_L = 20;
+	////MoveToPoint(DEF_LEFT_HAND, pos_Lcorner_up_deg_L.m_arr, vel_deg_L);
+	//MoveToInitailPoint(DEF_ROBOT_COOR, pos_Rcorner_up_deg_R, pos_Lcorner_up_deg_L);
 	
-	CStaArray pos_Lcorner_up_deg_L(233, 45, -97, -80, 0, 0, 40);
-	double vel_deg_L = 20;
-	//MoveToPoint(DEF_LEFT_HAND, pos_Lcorner_up_deg_L.m_arr, vel_deg_L);
-	MoveToInitailPoint(DEF_ROBOT_COOR, pos_Rcorner_up_deg_R, pos_Lcorner_up_deg_L);
-	Sleep(3000);
-
-
 	//右手往Z方向 左手往Z方向
 	CStaArray R_starP(233, -135, -97, 50, 0, 0, -50);
-	CStaArray R_endP(233, -135, 10, 50, 0, 0, -50);
+	CStaArray R_endP(233, -135, 80, 50, 0, 0, -50);
 	CStaArray L_starP(233, 45, -97, -80, 0, 0, 40);
-	CStaArray L_endP(233, 45, 10, -80, 0, 0, 40);
+	CStaArray L_endP(233, 45, 80, -80, 0, 0, 40);
 
-	float CostTime = 3;
+	float CostTime = 5;
 	LineMoveTo(DEF_ROBOT_COOR, L_starP, L_endP, R_starP, R_endP, CostTime);
-
-
-	//move to initial point
-	CStaArray R_IniP(-90, -90, 0, 50, 0, 0, -50);
-	CStaArray L_IniP(-90, 90, 0, -90, 0, 0, 90);
-	MoveToInitailPoint(DEF_OBJFRAME_COOR, R_IniP, L_IniP);
-
 }
 
 int dxl2test()
