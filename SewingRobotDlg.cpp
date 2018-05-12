@@ -141,19 +141,21 @@ void CSewingRobotDlg::OnBnClickedBtnIniDxl()
 
 void CSewingRobotDlg::OnBnClickedBtnSewprocess()
 {
-	//ROM_Setting_Dual();
-	//PID_Setting_Dual();
-	//Torque_Switch(1);
-	//SetAllAccTo(50); //50 deg/acc^
-	//TestSewingAction();
-	TestRead_pos();
-	//RecordMotor();
-	//ROM_Setting_Dual();
-	//TestMotorPID();
-	//TestRead_pos();
 
-	//dxl2test();
-	//dxl2_sync_test();
+	
+	//Torque_Switch(1);
+	//PID_Setting_Dual();
+	////SetAllAccTo(50); //50 deg/acc^
+	//TestSewingAction();
+	////ROM_Setting_Dual();
+	//TestMotorPID();
+	////TestRead_pos();
+
+	////dxl2test();
+	////dxl2_sync_test();
+
+	TestLeftCicle_RightLine();
+
 }
 
 
@@ -168,7 +170,7 @@ void CSewingRobotDlg::OnBnClickedBtnRightRel()
 {
 	// TODO: 在此加入控制項告知處理常式程式碼
 	int releasetime = GetDlgItemInt(IDC_EDIT_REL_TIME);
-	//F446RE_Gripper_Hold(DEF_RIGHT_HAND,false,releasetime);
+	////F446RE_Gripper_Hold(DEF_RIGHT_HAND,false,releasetime);
 	gpF446RE->Gripper_Hold(DEF_RIGHT_HAND, false, releasetime);
 }
 
@@ -196,8 +198,8 @@ void CSewingRobotDlg::OnBnClickedBtnIniF446()
 	// TODO: 在此加入控制項告知處理常式程式碼
 	//F446RE_Initial();
 	gpF446RE = new cF446RE();
-	gpF446RE->initial(5, 9600);
-	_cprintf("F446RE_Initial\n");
+	gpF446RE->initial(3, 9600);
+	printf("F446RE_Initial\n");
 }
 
 
@@ -266,9 +268,6 @@ void CSewingRobotDlg::OnBnClickedBtnTorqueDisable()
 void CSewingRobotDlg::OnBnClickedBtnMovetoInit()
 {
 	// TODO: 在此加入控制項告知處理常式程式碼
-	PID_Setting_Dual();
-	Torque_Switch(1);
-	SetAllAccTo(30); //50 deg/acc^
 	CStaArray R_IniP(-90, -90, 0, 50, 0, 0, -50);
 	CStaArray L_IniP(-90, 90, 0, -90, 0, 0, 90);
 	MoveToInitailPoint(DEF_OBJFRAME_COOR,R_IniP, L_IniP);

@@ -534,6 +534,8 @@ void RotateMoveTo(int Coordinate, CStaArray &L_starP,CStaArray &L_endP,CStaArray
 void IKOutputToArm(CStaArray &PathPlanPoint_R,CStaArray &PathPlanPoint_L);
 void TestMotorPID();
 void RecordMotor();
+void TestLeftCicle_RightLine();
+
 
 int Output_to_Dynamixel(int RLHand,const double *Ang_rad,const unsigned short int *velocity) ;
 int Output_to_Dynamixel_Dual(const double *Ang_rad_R,const unsigned short int *velocity_R, const unsigned short int *acc_R,const double *Ang_rad_L,const unsigned short int *velocity_L, const unsigned short int *acc_L);
