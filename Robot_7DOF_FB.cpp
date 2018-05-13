@@ -1310,7 +1310,7 @@ void TestLeftCicle_RightLine()
 
 	//====================================right calculate acc tb start
 	CStaArray R_starP(210, -360, 0, 50, 0, 0, -50);
-	CStaArray R_endP(350, -360, 0, 50, 0, 0, -50);
+	CStaArray R_endP(450, -360, 0, 50, 0, 0, -50);
 
 	float CostTime = 12;
 	
