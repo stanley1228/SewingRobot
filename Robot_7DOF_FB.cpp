@@ -1309,8 +1309,8 @@ void TestLeftCicle_RightLine()
 #endif
 
 	//====================================right calculate acc tb start
-	CStaArray R_starP(210, -360, 0, 50, -90, 0, -50);
-	CStaArray R_endP(350, -360, 0, 50, -90, 0, -50);
+	CStaArray R_starP(210, -360, 0, 50, 0, 0, -50);
+	CStaArray R_endP(350, -360, 0, 50, 0, 0, -50);
 
 	float CostTime = 12;
 	
@@ -2019,25 +2019,45 @@ void PickSewingObject()
 
 int TestMoveToSewingHome_Dual()
 {
-	//float theta_R[7]={0.02,-1.02,-0.06,1.48,0.19,0.34,1.18};
-	double theta_R[7]={0.08,-0.72,0.36,1.48,0.78,0.05,1.22};
-	double theta_L[7]={-0.97,-0.16,1.39,1.07,0.22,-0.35,-0.91};
+	//==sewing machine home==//
 
-	//output to motor
-	unsigned short int velocity_R[MAX_AXIS_NUM]={6,3,5,2,4,4,4};
-	unsigned short int velocity_L[MAX_AXIS_NUM]={4,4,4,4,4,4,4};
+	////float theta_R[7]={0.02,-1.02,-0.06,1.48,0.19,0.34,1.18};
+	//double theta_R[7]={0.08,-0.72,0.36,1.48,0.78,0.05,1.22};
+	//double theta_L[7]={-0.97,-0.16,1.39,1.07,0.22,-0.35,-0.91};
 
-	unsigned short int acc_R[MAX_AXIS_NUM] = { 1,1,1,1,1,1,1 };
-	unsigned short int acc_L[MAX_AXIS_NUM] = { 1,1,1,1,1,1,1};
+	////output to motor
+	//unsigned short int velocity_R[MAX_AXIS_NUM]={6,3,5,2,4,4,4};
+	//unsigned short int velocity_L[MAX_AXIS_NUM]={4,4,4,4,4,4,4};
 
-	
-	Output_to_Dynamixel_Dual(theta_R,velocity_R, acc_R,theta_L,velocity_L, acc_L);
+	//unsigned short int acc_R[MAX_AXIS_NUM] = { 1,1,1,1,1,1,1 };
+	//unsigned short int acc_L[MAX_AXIS_NUM] = { 1,1,1,1,1,1,1};
+
+	//
+	//Output_to_Dynamixel_Dual(theta_R,velocity_R, acc_R,theta_L,velocity_L, acc_L);
 
 	WaitMotionDoneDual();
 
-	Torque_Switch(0);
-	printf("Torque_Disable\n");	
+	//Torque_Switch(0);
+	//printf("Torque_Disable\n");	
+	//return 0;
+
+	//==original home==//
+	double theta_R[7] = { 0,0,0,0,0,0,0 };
+	double theta_L[7] = { 0,0,0,0,0,0,0 };
+
+	//output to motor
+	unsigned short int velocity_R[MAX_AXIS_NUM] = { 6,3,5,2,4,4,4 };
+	unsigned short int velocity_L[MAX_AXIS_NUM] = { 4,4,4,4,4,4,4 };
+
+	unsigned short int acc_R[MAX_AXIS_NUM] = { 1,1,1,1,1,1,1 };
+	unsigned short int acc_L[MAX_AXIS_NUM] = { 1,1,1,1,1,1,1 };
+
+
+	Output_to_Dynamixel_Dual(theta_R, velocity_R, acc_R, theta_L, velocity_L, acc_L);
+
 	return 0;
+	
+
 
 }
 
@@ -3383,8 +3403,8 @@ int MoveToPoint_Dual(double current_theta_deg_R[7],double Point_R[7], double cur
 	{
 		vel_pus_R_int[i] = 42*DEF_RATIO_VEL_DEG_TO_PUS_DXL2;
 		vel_pus_L_int[i] = 42*DEF_RATIO_VEL_DEG_TO_PUS_DXL2;
-		acc_pus_R_int[i] = 400*DEF_RATIO_ACC_DEG_TO_PUS_DXL2;
-		acc_pus_L_int[i] = 400*DEF_RATIO_ACC_DEG_TO_PUS_DXL2;
+		acc_pus_R_int[i] = 100*DEF_RATIO_ACC_DEG_TO_PUS_DXL2;
+		acc_pus_L_int[i] = 200*DEF_RATIO_ACC_DEG_TO_PUS_DXL2;
 		
 	}
 

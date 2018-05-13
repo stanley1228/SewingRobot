@@ -154,6 +154,7 @@ void CSewingRobotDlg::OnBnClickedBtnSewprocess()
 	////dxl2test();
 	////dxl2_sync_test();
 
+	Torque_Switch(1);
 	TestLeftCicle_RightLine();
 
 }
@@ -267,10 +268,19 @@ void CSewingRobotDlg::OnBnClickedBtnTorqueDisable()
 
 void CSewingRobotDlg::OnBnClickedBtnMovetoInit()
 {
-	// TODO: 在此加入控制項告知處理常式程式碼
-	CStaArray R_IniP(-90, -90, 0, 50, 0, 0, -50);
-	CStaArray L_IniP(-90, 90, 0, -90, 0, 0, 90);
-	MoveToInitailPoint(DEF_OBJFRAME_COOR,R_IniP, L_IniP);
+
+	//==sewing process initial point==//
+	//Torque_Switch(1);
+	//CStaArray R_IniP(-90, -90, 0, 50, 0, 0, -50);
+	//CStaArray L_IniP(-90, 90, 0, -90, 0, 0, 90);
+	//MoveToInitailPoint(DEF_OBJFRAME_COOR,R_IniP, L_IniP);
+
+	//==right line left circle initial point==//
+	Torque_Switch(1);
+	CStaArray R_IniP(210, -360, 0, 50, 0, 0, -50); 
+	CStaArray L_IniP(350, 100, 0, -60, 0, 0, 60); 
+	MoveToInitailPoint(DEF_ROBOT_COOR, R_IniP, L_IniP);
+
 }
 
 
