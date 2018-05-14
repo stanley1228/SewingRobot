@@ -146,7 +146,7 @@ void CSewingRobotDlg::OnBnClickedBtnSewprocess()
 	//Torque_Switch(1);
 	//PID_Setting_Dual();
 	////SetAllAccTo(50); //50 deg/acc^
-	//TestSewingAction();
+	TestSewingAction();
 	////ROM_Setting_Dual();
 	//TestMotorPID();
 	////TestRead_pos();
@@ -154,8 +154,8 @@ void CSewingRobotDlg::OnBnClickedBtnSewprocess()
 	////dxl2test();
 	////dxl2_sync_test();
 
-	Torque_Switch(1);
-	TestLeftCicle_RightLine();
+	//Torque_Switch(1);
+	//TestLeftCicle_RightLine();
 
 }
 

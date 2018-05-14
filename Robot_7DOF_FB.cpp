@@ -31,7 +31,7 @@
 //#define CHECK_CARTESIAN_PATH 
 //#define GRIPPER_ON_LATTE
 #define MOVETOPOINT_DUAL
-#define CHECK_JOINT_PATH  
+//#define CHECK_JOINT_PATH  
 //#define CHECK_JOINT_VEL_CMD
 //#define MOVE_TO_INITIAL_POINT
 //#define RECORD_JOINT_ANGLE
@@ -40,7 +40,7 @@
 //#define RECORD_JOINT_MOVING
 //#define DEF_WAIT_ENTER
 
-const double gCycleT = 0.04;
+const double gCycleT = 0.01;
 
 std::fstream gfileR;
 std::fstream gfileL;
@@ -877,7 +877,7 @@ CStaArray CStaArray::operator-(CStaArray &other)
 }
 
 
-CStaArray gNeedle_RobotF(350,-300,50,0,0,0,0);//針點在手臂坐標系位置   
+CStaArray gNeedle_RobotF(350,-300,30,0,0,0,0);//針點在手臂坐標系位置   
 CStaArray gNeedle_ini_Plate(30,-30,0,0,0,0,0);//下針點在架子plate座標系上的初始點
 CStaArray gTranFrameToRobot=gNeedle_RobotF-gNeedle_ini_Plate;//利用兩個的差值去做比較
 
@@ -1458,8 +1458,8 @@ void LineMoveTo(int Coordinate,CStaArray &L_starP, CStaArray &L_endP, CStaArray 
 		}
 	}
 
-	double const DEF_ACC_L[MAX_AXIS_NUM] = { 100,100,100,100,100,100,100 }; //len/s^2
-	double const DEF_ACC_R[MAX_AXIS_NUM] = { 100,100,100,100,100,100,100 };
+	double  DEF_ACC_L[MAX_AXIS_NUM] = { 100,100,100,100,100,100,100 }; //len/s^2
+	double  DEF_ACC_R[MAX_AXIS_NUM] = { 100,100,100,100,100,100,100 };
 
 	//==calculate if costtime is ok
 	double acc_L_min[MAX_AXIS_NUM] = { 0 };
@@ -1474,15 +1474,26 @@ void LineMoveTo(int Coordinate,CStaArray &L_starP, CStaArray &L_endP, CStaArray 
 		if (DEF_ACC_L[i] < abs(acc_L_min[i]))
 			printf("L cost time too short'");
 
-		tb_L[i] = (DEF_ACC_L[i] * CostTime - sqrt(pow(DEF_ACC_L[i], 2)*pow(CostTime, 2) - 4 * DEF_ACC_L[i] * (L_endP.at(i) - L_starP.at(i)))) / (2 * DEF_ACC_L[i]);
+		tb_L[i] = (DEF_ACC_L[i] * CostTime - sqrt(pow(DEF_ACC_L[i], 2)*pow(CostTime, 2) - 4 * DEF_ACC_L[i] * (abs(L_endP.at(i) - L_starP.at(i))))) / (2 * DEF_ACC_L[i]);
 
+		if ((L_endP.at(i) - L_starP.at(i)) < 0)// for different direction acc
+			DEF_ACC_L[i] = -DEF_ACC_L[i];
 
+		if (tb_L[i] < 0) printf("tb_L < 0");
+			
+		
 		acc_R_min[i] = 4 * (R_endP.at(i) - R_starP.at(i)) / pow(CostTime, 2);
 
 		if (DEF_ACC_R[i] < abs(acc_R_min[i]))
 			printf("R cost time too short'");
 
-		tb_R[i] = (DEF_ACC_R[i] * CostTime - sqrt(pow(DEF_ACC_R[i], 2)*pow(CostTime, 2) - 4 * DEF_ACC_R[i] * (R_endP.at(i) - R_starP.at(i)))) / (2 * DEF_ACC_R[i]);
+		tb_R[i] = (DEF_ACC_R[i] * CostTime - sqrt(pow(DEF_ACC_R[i], 2)*pow(CostTime, 2) - 4 * DEF_ACC_R[i] * (abs(R_endP.at(i) - R_starP.at(i))))) / (2 * DEF_ACC_R[i]);
+	
+		if ((R_endP.at(i) - R_starP.at(i)) < 0)
+			DEF_ACC_R[i] = -DEF_ACC_R[i];
+
+		if (tb_R[i] < 0) printf("tb_R < 0");
+		
 	}
 
 	LARGE_INTEGER nFreq;
@@ -1493,7 +1504,7 @@ void LineMoveTo(int Coordinate,CStaArray &L_starP, CStaArray &L_endP, CStaArray 
 	CStaArray PathPlanPoint_R(0, 0, 0, 0, 0, 0, 0);
 	CStaArray PathPlanPoint_L(0, 0, 0, 0, 0, 0, 0);
 
-	for (double t = 0; t <= CostTime; t += gCycleT)
+	for (double t = gCycleT; t <= CostTime; t += gCycleT)
 	{
 		QueryPerformanceCounter(&nBeginTime); //Record cycle start time
 
@@ -1569,8 +1580,8 @@ void RotateMoveTo(
 	double ini_rad_L = atan((L_starP.at(DEF_Y) - arc_cen.at(DEF_Y)) / (L_starP.at(DEF_X) - arc_cen.at(DEF_X)));
 
 	//parabolic blend parameter
-	double acc_deg_L = 60; //cartesian space旋轉的角度的角速度
-	double acc_deg_R = 60;
+	double acc_deg_L = 50; //cartesian space旋轉的角度的角速度
+	double acc_deg_R = 50;
 	double DEF_ACC_L[MAX_AXIS_NUM] = { acc_deg_L*DEF_RATIO_DEG_TO_RAD,acc_deg_L*DEF_RATIO_DEG_TO_RAD,acc_deg_L*DEF_RATIO_DEG_TO_RAD,100,100,100,100 }; //item x,y,z use the same compenet to interpolate unit is rad/s^2   the rest of item's unit is len/s^2
 	double DEF_ACC_R[MAX_AXIS_NUM] = { acc_deg_R*DEF_RATIO_DEG_TO_RAD,acc_deg_R*DEF_RATIO_DEG_TO_RAD,acc_deg_R*DEF_RATIO_DEG_TO_RAD,100,100,100,100 };
 	double acc_L_min[MAX_AXIS_NUM] = { 0 };
@@ -1623,7 +1634,7 @@ void RotateMoveTo(
 	double current_rad_R = 0.0;
 	double current_rad_L = 0.0;
 
-	for (double t = 0; t <= CostTime; t += gCycleT)
+	for (double t = gCycleT; t <= CostTime; t += gCycleT)
 	{
 		QueryPerformanceCounter(&nBeginTime); //Record cycle start time
 
@@ -1638,7 +1649,6 @@ void RotateMoveTo(
 					current_rad_R = ini_rad_R + 0.5*DEF_ACC_R[i] * pow(tb_R[i], 2) + DEF_ACC_R[i] * tb_R[i] * (t - tb_R[i]);
 				else
 					current_rad_R = (ini_rad_R + rot_rad) - 0.5*DEF_ACC_R[i] * pow(CostTime - t, 2);
-
 			}
 			else
 			{
@@ -1663,7 +1673,7 @@ void RotateMoveTo(
 				else
 					current_rad_L = (ini_rad_L + rot_rad) - 0.5*DEF_ACC_L[i] * pow(CostTime - t, 2);
 
-				i = 2;// 0~2 calculate the same thing current_rad_L
+				//i = 2;// 0~2 calculate the same thing current_rad_L
 			}
 			else
 			{
@@ -1748,8 +1758,8 @@ void TestSewingAction()
 #endif
 	
 #ifdef CHECK_CARTESIAN_PATH
-	gfileCartesianPathR.open("C://stanley//GetSewCartesian_R.csv",ios::out|ios::trunc); //D://GetSewCartesian_R.csv
-	gfileCartesianPathL.open("C://stanley//GetSewCartesian_L.csv",ios::out|ios::trunc);//D://GetSewCartesian_L.csv
+	gfileCartesianPathR.open("D://GetSewCartesian_R.csv",ios::out|ios::trunc); //D://GetSewCartesian_R.csv
+	gfileCartesianPathL.open("D://GetSewCartesian_L.csv",ios::out|ios::trunc);//D://GetSewCartesian_L.csv
 
 #endif
 
@@ -1761,8 +1771,8 @@ void TestSewingAction()
 	
 
 #ifdef	CHECK_JOINT_PATH
-	gfileJointR.open("C://stanley//SewJoint_CMD_R.csv",ios::out|ios::trunc);//D://SewJoint_CMD_R.csv
-	gfileJointL.open("C://stanley//SewJoint_CMD_L.csv",ios::out|ios::trunc);//D://
+	gfileJointR.open("D://SewJoint_CMD_R.csv",ios::out|ios::trunc);//D://SewJoint_CMD_R.csv
+	gfileJointL.open("D://SewJoint_CMD_L.csv",ios::out|ios::trunc);//D://
 #endif
 
 
@@ -1780,7 +1790,7 @@ void TestSewingAction()
 
 	//==static parameter==//
 	const float MovOutLen=50;//移出抓取點的長度
-	const float SewingLength=50;//縫紉行程
+	const float SewingLength=60;//縫紉行程
 	const float RelMovLen=180;//框架抓取點間距
 
 	//==MoveToInitailPoint==//
@@ -1816,7 +1826,7 @@ void TestSewingAction()
 #endif
 
 	//右手往正X SewingLenth 左手往正X 縫線長度 SewingLenth
-	CStaArray R_starP(-90,-90,0,70,0,0,-50);
+	CStaArray R_starP(-90,-90,0,50,0,0,-50);
 	CStaArray R_endP(-90+SewingLength,-90,0,70,0,0,-50);
 	CStaArray L_starP(-90,90,0,-90,0,0,90);
 	CStaArray L_endP(-90+SewingLength,90,0,-90,0,0,90);
@@ -1836,8 +1846,8 @@ void TestSewingAction()
 #endif
 
 	//右手不動 左手往正y移動 
+	R_starP.SetArray(-90 + SewingLength, -90, 0, 70, 0, 0, -50);
 	R_endP.SetArray(-90+SewingLength,-90,0,50,0,0,-50);
-	R_starP.SetArray(-90+SewingLength,-90,0,70,0,0,-50);
 	L_starP.SetArray(-90+SewingLength,90, 0,-90,0,0,90);
 	L_endP.SetArray(-90+SewingLength,90+MovOutLen, 0,-90,0,0,90);
 	CostTime=3;
@@ -1846,7 +1856,7 @@ void TestSewingAction()
 	//右手不動 左手往正X 抓取點間隔長度(Release move length)
 	R_starP.SetArray(-90+SewingLength,-90,0,50,0,0,-50);
 	R_endP.SetArray(-90+SewingLength,-90,0,50,0,0,-50);
-	double z_offset_L = 50;//to overcome left hand to heavy
+	double z_offset_L = 0;//to overcome left hand to heavy
 	L_starP.SetArray(-90+SewingLength,90+MovOutLen, z_offset_L,-90,0,0,90);
 	L_endP.SetArray(-90+SewingLength+RelMovLen,90+MovOutLen, z_offset_L,-60,0,0,90);
 	CostTime=3;
@@ -1877,7 +1887,7 @@ void TestSewingAction()
 	L_endP.SetArray(-90,90,0,-90,0,0,90);
 	CStaArray arc_cen(gNeedle_ini_Plate); //旋轉圓心為針在架子上的起始點
 	double rot_rad=0.5*DEF_PI; //旋轉時的起始旋轉角度
-	CostTime=4;
+	CostTime=6;
 	RotateMoveTo(DEF_OBJFRAME_COOR,L_starP,L_endP,R_starP,R_endP,arc_cen,rot_rad,CostTime);
 
 #ifdef F446RE_GRIPPER_EN
@@ -1903,7 +1913,7 @@ void TestSewingAction()
 	R_endP.SetArray(90-MovOutLen-RelMovLen,-90-MovOutLen,0,50,0,0,-70);
 	L_starP.SetArray(-90,90,0,-90,0,0,90);
 	L_endP.SetArray(-90,90,0,-90,0,0,90);
-	CostTime=3;
+	CostTime=4;
 	LineMoveTo(DEF_OBJFRAME_COOR,L_starP,L_endP,R_starP,R_endP,CostTime);
 
 	//右手往X往Y正MovOutLen  左手不動1 
