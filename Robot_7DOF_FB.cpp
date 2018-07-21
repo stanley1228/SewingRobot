@@ -920,33 +920,33 @@ void IKOutputToArm(CStaArray &PathPlanPoint_R,CStaArray &PathPlanPoint_L)
 	int rt=0;
 	char buffer[100];
 	//==Read right hand
-	//rt=Read_pos(DEF_RIGHT_HAND,pos_deg_R,DEF_UNIT_DEG);
+	rt=Read_pos(DEF_RIGHT_HAND,pos_deg_R,DEF_UNIT_DEG);
 
-	//if(rt==0)
-	//{
-	//	//for(int i=Index_AXIS1;i<=Index_AXIS7;i++)
-	//	//{
-	//	//	printf("f%d:%3.0f, ",gMapAxisNO[i],pos_deg_R[i]);
-	//	//}
-	//	printf("\n");
+	if(rt==0)
+	{
+		//for(int i=Index_AXIS1;i<=Index_AXIS7;i++)
+		//{
+		//	printf("f%d:%3.0f, ",gMapAxisNO[i],pos_deg_R[i]);
+		//}
+		printf("\n");
 
-	//	
-	//	n=sprintf_s(buffer,sizeof(buffer),"%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst,pos_deg_R[Index_AXIS1],pos_deg_R[Index_AXIS2],pos_deg_R[Index_AXIS3],pos_deg_R[Index_AXIS4],pos_deg_R[Index_AXIS5],pos_deg_R[Index_AXIS6],pos_deg_R[Index_AXIS7]);
-	//	gfileSewJointFB_R.write(buffer,n);
-	//	
-	//	memcpy(pos_deg_last_ok_R,pos_deg_R,sizeof(pos_deg_last_ok_R));
-	//}
-	//else //讀取失敗時，拿前一筆來補
-	//{
-	//	//for(int i=Index_AXIS1;i<=Index_AXIS7;i++)
-	//	//{
-	//	//	printf("f%d:%3.0f, ",gMapAxisNO[i],pos_deg_last_ok_R[i]);
-	//	//}
-	//	printf("\n");
+		
+		n=sprintf_s(buffer,sizeof(buffer),"%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst,pos_deg_R[Index_AXIS1],pos_deg_R[Index_AXIS2],pos_deg_R[Index_AXIS3],pos_deg_R[Index_AXIS4],pos_deg_R[Index_AXIS5],pos_deg_R[Index_AXIS6],pos_deg_R[Index_AXIS7]);
+		gfileSewJointFB_R.write(buffer,n);
+		
+		memcpy(pos_deg_last_ok_R,pos_deg_R,sizeof(pos_deg_last_ok_R));
+	}
+	else //讀取失敗時，拿前一筆來補
+	{
+		//for(int i=Index_AXIS1;i<=Index_AXIS7;i++)
+		//{
+		//	printf("f%d:%3.0f, ",gMapAxisNO[i],pos_deg_last_ok_R[i]);
+		//}
+		printf("\n");
 
-	//	n=sprintf_s(buffer,sizeof(buffer),"%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst,pos_deg_last_ok_R[Index_AXIS1],pos_deg_last_ok_R[Index_AXIS2],pos_deg_last_ok_R[Index_AXIS3],pos_deg_last_ok_R[Index_AXIS4],pos_deg_last_ok_R[Index_AXIS5],pos_deg_last_ok_R[Index_AXIS6],pos_deg_last_ok_R[Index_AXIS7]);
-	//	gfileSewJointFB_R.write(buffer,n);
-	//}
+		n=sprintf_s(buffer,sizeof(buffer),"%4.3f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f,%4.1f\n", gstatic_abst,pos_deg_last_ok_R[Index_AXIS1],pos_deg_last_ok_R[Index_AXIS2],pos_deg_last_ok_R[Index_AXIS3],pos_deg_last_ok_R[Index_AXIS4],pos_deg_last_ok_R[Index_AXIS5],pos_deg_last_ok_R[Index_AXIS6],pos_deg_last_ok_R[Index_AXIS7]);
+		gfileSewJointFB_R.write(buffer,n);
+	}
 
 	//==Read left hand
 	rt=Read_pos(DEF_LEFT_HAND,pos_deg_L,DEF_UNIT_DEG);
@@ -1087,13 +1087,13 @@ void IKOutputToArm(CStaArray &PathPlanPoint_R,CStaArray &PathPlanPoint_L)
 #endif
 
 #ifdef MOVETOPOINT_DUAL
-		static int cnt = 0;
-		if (cnt % 10 == 0)
-		{
+		//static int cnt = 0;
+		//if (cnt % 4 == 0)
+		//{
 			double pos_deg_R[MAX_AXIS_NUM] = { 0 };
 			double pos_deg_L[MAX_AXIS_NUM] = { 0 };
 			MoveToPoint_Dual(pos_deg_R, PathPlanPoint_R.m_arr, pos_deg_L, PathPlanPoint_L.m_arr);  //使用原本matrix大約20ms    改為opencv matri後平均2.5ms 因此cycle time想抓10ms  
-		}
+		//}
 		
 #endif
 
@@ -1273,8 +1273,8 @@ void TestLeftCicle_RightLine()
 #endif
 
 #ifdef CHECK_CARTESIAN_PATH
-	gfileCartesianPathR.open("D://GetSewCartesian_R.csv", ios::out | ios::trunc); //D://GetSewCartesian_R.csv
-	gfileCartesianPathL.open("D://GetSewCartesian_L.csv", ios::out | ios::trunc);//D://GetSewCartesian_L.csv
+	gfileCartesianPathR.open("C://stanley//GetSewCartesian_R.csv", ios::out | ios::trunc); //D://GetSewCartesian_R.csv
+	gfileCartesianPathL.open("C://stanley//GetSewCartesian_L.csv", ios::out | ios::trunc);//D://GetSewCartesian_L.csv
 
 #endif
 
@@ -1286,8 +1286,8 @@ void TestLeftCicle_RightLine()
 
 
 #ifdef	CHECK_JOINT_PATH
-	gfileJointR.open("D://SewJoint_CMD_R.csv", ios::out | ios::trunc);//D://SewJoint_CMD_R.csv
-	gfileJointL.open("D://SewJoint_CMD_L.csv", ios::out | ios::trunc);//D://
+	gfileJointR.open("C://stanley//SewJoint_CMD_R.csv", ios::out | ios::trunc);//D://SewJoint_CMD_R.csv
+	gfileJointL.open("C://stanley//SewJoint_CMD_L.csv", ios::out | ios::trunc);//D://
 #endif
 
 #ifdef	RECORD_JOINT_LOAD
@@ -1444,6 +1444,51 @@ void TestLeftCicle_RightLine()
 
 }
 
+//no planning
+//void LineMoveTo(int Coordinate, CStaArray &L_starP, CStaArray &L_endP, CStaArray &R_starP, CStaArray &R_endP, double CostTime)
+//{
+//	//==transfer frame coordinate to robot coordinate==//
+//	if (Coordinate == DEF_OBJFRAME_COOR)
+//	{
+//		for (int i = 0; i<3; i++)
+//		{
+//			L_starP.m_arr[i] = L_starP.at(i) + gTranFrameToRobot.at(i);
+//			L_endP.m_arr[i] = L_endP.at(i) + gTranFrameToRobot.at(i);
+//			R_starP.m_arr[i] = R_starP.at(i) + gTranFrameToRobot.at(i);
+//			R_endP.m_arr[i] = R_endP.at(i) + gTranFrameToRobot.at(i);
+//		}
+//	}
+//	LARGE_INTEGER nFreq;
+//	LARGE_INTEGER nBeginTime;
+//	LARGE_INTEGER nEndTime;
+//	QueryPerformanceFrequency(&nFreq);
+//
+//	CStaArray PathPlanPoint_R(0, 0, 0, 0, 0, 0, 0);
+//	CStaArray PathPlanPoint_L(0, 0, 0, 0, 0, 0, 0);
+//
+//	for (double t = 0; t <= CostTime; t += gCycleT)
+//	{
+//		QueryPerformanceCounter(&nBeginTime); //Record cycle start time
+//
+//											  //==calculate cartisian point==//
+//		PathPlanPoint_R = R_starP + (R_endP - R_starP)*(t / CostTime);
+//		PathPlanPoint_L = L_starP + (L_endP - L_starP)*(t / CostTime);
+//
+//		//==calculate IK and Output to arm==//
+//		IKOutputToArm(PathPlanPoint_R, PathPlanPoint_L);
+//
+//		do
+//		{
+//			Sleep(0);
+//			QueryPerformanceCounter(&nEndTime);
+//			//printf("%f\n",(double)(nEndTime.QuadPart-nBeginTime.QuadPart)*1000/(double)nFreq.QuadPart);
+//		} while ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) / (double)nFreq.QuadPart < gCycleT);
+//	}
+//
+//
+//}
+
+//with planning
 void LineMoveTo(int Coordinate,CStaArray &L_starP, CStaArray &L_endP, CStaArray &R_starP, CStaArray &R_endP, double CostTime)
 {
 	//==transfer frame coordinate to robot coordinate==//
@@ -1758,8 +1803,8 @@ void TestSewingAction()
 #endif
 	
 #ifdef CHECK_CARTESIAN_PATH
-	gfileCartesianPathR.open("D://GetSewCartesian_R.csv",ios::out|ios::trunc); //D://GetSewCartesian_R.csv
-	gfileCartesianPathL.open("D://GetSewCartesian_L.csv",ios::out|ios::trunc);//D://GetSewCartesian_L.csv
+	gfileCartesianPathR.open("C://stanley//GetSewCartesian_R.csv",ios::out|ios::trunc); //D://GetSewCartesian_R.csv
+	gfileCartesianPathL.open("C://stanley//GetSewCartesian_L.csv",ios::out|ios::trunc);//D://GetSewCartesian_L.csv
 
 #endif
 
@@ -1771,8 +1816,8 @@ void TestSewingAction()
 	
 
 #ifdef	CHECK_JOINT_PATH
-	gfileJointR.open("D://SewJoint_CMD_R.csv",ios::out|ios::trunc);//D://SewJoint_CMD_R.csv
-	gfileJointL.open("D://SewJoint_CMD_L.csv",ios::out|ios::trunc);//D://
+	gfileJointR.open("C://stanley//SewJoint_CMD_R.csv",ios::out|ios::trunc);//D://SewJoint_CMD_R.csv
+	gfileJointL.open("C://stanley//SewJoint_CMD_L.csv",ios::out|ios::trunc);//D://
 #endif
 
 
@@ -2031,19 +2076,19 @@ int TestMoveToSewingHome_Dual()
 {
 	//==sewing machine home==//
 
-	////float theta_R[7]={0.02,-1.02,-0.06,1.48,0.19,0.34,1.18};
-	//double theta_R[7]={0.08,-0.72,0.36,1.48,0.78,0.05,1.22};
-	//double theta_L[7]={-0.97,-0.16,1.39,1.07,0.22,-0.35,-0.91};
+	//float theta_R[7]={0.02,-1.02,-0.06,1.48,0.19,0.34,1.18};
+	double theta_R[7]={0.08,-0.72,0.36,1.48,0.78,0.05,1.22};
+	double theta_L[7]={-0.97,-0.16,1.39,1.07,0.22,-0.35,-0.91};
 
-	////output to motor
-	//unsigned short int velocity_R[MAX_AXIS_NUM]={6,3,5,2,4,4,4};
-	//unsigned short int velocity_L[MAX_AXIS_NUM]={4,4,4,4,4,4,4};
+	//output to motor
+	unsigned short int velocity_R[MAX_AXIS_NUM]={6,3,5,2,4,4,4};
+	unsigned short int velocity_L[MAX_AXIS_NUM]={4,4,4,4,4,4,4};
 
-	//unsigned short int acc_R[MAX_AXIS_NUM] = { 1,1,1,1,1,1,1 };
-	//unsigned short int acc_L[MAX_AXIS_NUM] = { 1,1,1,1,1,1,1};
+	unsigned short int acc_R[MAX_AXIS_NUM] = { 1,1,1,1,1,1,1 };
+	unsigned short int acc_L[MAX_AXIS_NUM] = { 1,1,1,1,1,1,1};
 
-	//
-	//Output_to_Dynamixel_Dual(theta_R,velocity_R, acc_R,theta_L,velocity_L, acc_L);
+	
+	Output_to_Dynamixel_Dual(theta_R,velocity_R, acc_R,theta_L,velocity_L, acc_L);
 
 	WaitMotionDoneDual();
 
@@ -2052,18 +2097,18 @@ int TestMoveToSewingHome_Dual()
 	//return 0;
 
 	//==original home==//
-	double theta_R[7] = { 0,0,0,0,0,0,0 };
-	double theta_L[7] = { 0,0,0,0,0,0,0 };
+	//double theta_R[7] = { 0,0,0,0,0,0,0 };
+	//double theta_L[7] = { 0,0,0,0,0,0,0 };
 
-	//output to motor
-	unsigned short int velocity_R[MAX_AXIS_NUM] = { 6,3,5,2,4,4,4 };
-	unsigned short int velocity_L[MAX_AXIS_NUM] = { 4,4,4,4,4,4,4 };
+	////output to motor
+	//unsigned short int velocity_R[MAX_AXIS_NUM] = { 6,3,5,2,4,4,4 };
+	//unsigned short int velocity_L[MAX_AXIS_NUM] = { 4,4,4,4,4,4,4 };
 
-	unsigned short int acc_R[MAX_AXIS_NUM] = { 1,1,1,1,1,1,1 };
-	unsigned short int acc_L[MAX_AXIS_NUM] = { 1,1,1,1,1,1,1 };
+	//unsigned short int acc_R[MAX_AXIS_NUM] = { 1,1,1,1,1,1,1 };
+	//unsigned short int acc_L[MAX_AXIS_NUM] = { 1,1,1,1,1,1,1 };
 
 
-	Output_to_Dynamixel_Dual(theta_R, velocity_R, acc_R, theta_L, velocity_L, acc_L);
+	//Output_to_Dynamixel_Dual(theta_R, velocity_R, acc_R, theta_L, velocity_L, acc_L);
 
 	return 0;
 	
@@ -3409,14 +3454,14 @@ int MoveToPoint_Dual(double current_theta_deg_R[7],double Point_R[7], double cur
 	unsigned short int acc_pus_R_int[MAX_AXIS_NUM]={0};
 	unsigned short int acc_pus_L_int[MAX_AXIS_NUM]={0};
 
-	for(int i=Index_AXIS1;i<=Index_AXIS7;i++) 
-	{
-		vel_pus_R_int[i] = 42*DEF_RATIO_VEL_DEG_TO_PUS_DXL2;
-		vel_pus_L_int[i] = 42*DEF_RATIO_VEL_DEG_TO_PUS_DXL2;
-		acc_pus_R_int[i] = 100*DEF_RATIO_ACC_DEG_TO_PUS_DXL2;
-		acc_pus_L_int[i] = 200*DEF_RATIO_ACC_DEG_TO_PUS_DXL2;
-		
-	}
+	//for(int i=Index_AXIS1;i<=Index_AXIS7;i++) 
+	//{
+	//	vel_pus_R_int[i] = 42*DEF_RATIO_VEL_DEG_TO_PUS_DXL2;
+	//	vel_pus_L_int[i] = 42*DEF_RATIO_VEL_DEG_TO_PUS_DXL2;
+	//	acc_pus_R_int[i] = 100*DEF_RATIO_ACC_DEG_TO_PUS_DXL2;
+	//	acc_pus_L_int[i] = 200*DEF_RATIO_ACC_DEG_TO_PUS_DXL2;
+	//	
+	//}
 
 #ifdef CHECK_JOINT_VEL_CMD
 	 char buffer[100];
