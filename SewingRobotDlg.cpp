@@ -143,9 +143,9 @@ void CSewingRobotDlg::OnBnClickedBtnSewprocess()
 {
 
 	
-	//Torque_Switch(1);
-	//PID_Setting_Dual();
-	////SetAllAccTo(50); //50 deg/acc^
+	Torque_Switch(1);
+	PID_Setting_Dual();
+	//SetAllAccTo(50); //50 deg/acc^
 	TestSewingAction();
 	////ROM_Setting_Dual();
 	//TestMotorPID();
@@ -199,8 +199,8 @@ void CSewingRobotDlg::OnBnClickedBtnIniF446()
 	// TODO: 在此加入控制項告知處理常式程式碼
 	//F446RE_Initial();
 	gpF446RE = new cF446RE();
-	gpF446RE->initial(3, 9600);
-	printf("F446RE_Initial\n");
+	gpF446RE->initial(2, 9600);
+	_cprintf("F446RE_Initial\n");
 }
 
 
@@ -270,16 +270,16 @@ void CSewingRobotDlg::OnBnClickedBtnMovetoInit()
 {
 
 	//==sewing process initial point==//
-	//Torque_Switch(1);
-	//CStaArray R_IniP(-90, -90, 0, 50, 0, 0, -50);
-	//CStaArray L_IniP(-90, 90, 0, -90, 0, 0, 90);
-	//MoveToInitailPoint(DEF_OBJFRAME_COOR,R_IniP, L_IniP);
+	Torque_Switch(1);
+	CStaArray R_IniP(-90, -90, 0, 50, 0, 0, -50);
+	CStaArray L_IniP(-90, 90, 0, -90, 20, 0, 90);// change roll 20
+	MoveToInitailPoint(DEF_OBJFRAME_COOR,R_IniP, L_IniP);
 
 	//==right line left circle initial point==//
-	Torque_Switch(1);
-	CStaArray R_IniP(210, -360, 0, 50, 0, 0, -50); 
-	CStaArray L_IniP(350, 100, 0, -60, 0, 0, 60); 
-	MoveToInitailPoint(DEF_ROBOT_COOR, R_IniP, L_IniP);
+	//Torque_Switch(1);
+	//CStaArray R_IniP(210, -360, 0, 50, 0, 0, -50); 
+	//CStaArray L_IniP(350, 100, 0, -60, 0, 0, 60); 
+	//MoveToInitailPoint(DEF_ROBOT_COOR, R_IniP, L_IniP);
 
 }
 

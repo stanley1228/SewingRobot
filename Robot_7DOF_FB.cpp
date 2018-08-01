@@ -2044,7 +2044,7 @@ void TestSewingAction()
 	const float MovOutLen = 50;//移出抓取點的長度
 	const float SewingLength = 60;//縫紉行程
 	const float RelMovLenR = 180;//框架抓取點間距
-	const float RelMovLenL = 180;//框架抓取點間距
+	const float RelMovLenL = 130;//框架抓取點間距  //如果改長度，則圓弧畫回來的時候會出錯
 	//==MoveToInitailPoint==//
 #ifdef MOVE_TO_INITIAL_POINT
 	CStaArray R_IniP(-90, -90, 0, 50, 0, 0, -50);
@@ -2056,7 +2056,7 @@ void TestSewingAction()
 	int IODelayTime = 1000;
 	int HoldTime = 800;
 	int RelTime = 800;
-
+	
 #ifdef F446RE_GRIPPER_EN
 	//抬壓腳 抬
 	gpF446RE->FootLifter(true);
@@ -2156,7 +2156,8 @@ void TestSewingAction()
 	//右手往X負Y負移出  左手不動1 
 	R_starP.SetArray(90, -90, z_offset_R, 50, 0, 0, -50);
 	R_endP.SetArray(90 - MovOutLen, -90 - MovOutLen, z_offset_R, 50, 0, 0, -70);
-	L_starP.SetArray(-90, 90, 0, -90, 0, 0, 90);
+	//L_starP.SetArray(-90, 90, 0, -90, 0, 0, 90);
+	L_starP.SetArray(-90, 50, 0, -90, 0, 0, 90); //y change from 90 to 50
 	L_endP.SetArray(-90, 90, 0, -90, 0, 0, 90);
 	CostTime = 3;
 	LineMoveTo(DEF_OBJFRAME_COOR, L_starP, L_endP, R_starP, R_endP, CostTime);

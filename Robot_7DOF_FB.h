@@ -279,9 +279,9 @@ enum{
 //#define AXISL7_MAX_TORQUE 517	//50%
 
 //==PID P gain==//
-#define AXISR1_POS_P_GAIN	300		
+#define AXISR1_POS_P_GAIN	1500		
 #define AXISR2_POS_P_GAIN	1500
-#define AXISR3_POS_P_GAIN	1500
+#define AXISR3_POS_P_GAIN	3000
 #define AXISR4_POS_P_GAIN	1000
 #define AXISR5_POS_P_GAIN	500
 #define AXISR6_POS_P_GAIN	1500
@@ -298,7 +298,7 @@ enum{
 //==PID I gain==//
 #define AXISR1_POS_I_GAIN	20		
 #define AXISR2_POS_I_GAIN	50
-#define AXISR3_POS_I_GAIN	15
+#define AXISR3_POS_I_GAIN	50
 #define AXISR4_POS_I_GAIN	60
 #define AXISR5_POS_I_GAIN	40
 #define AXISR6_POS_I_GAIN	40
